@@ -119,9 +119,11 @@ def create_file_path(fullname ,path, sp_path, file_type, data):
 user = credentials()
 try:
     auth, username, password = user.get_credentials()
-#Exception Handling that closes program if tkinter box is closed
+#Exception Handling that closes program if tkinter box is closed prematurely
 except AttributeError:
     sys.exit("Program Terminated")
+
+#---------------USE TKINTER TO GET DESTINATION FOLDER----------------
     
 driver = webdriver.Edge(r'C:\Users\terre\Documents\edgedriver_win64\msedgedriver.exe')
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
@@ -137,6 +139,11 @@ driver.find_element_by_xpath("//form").submit()
 
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 #INVALID LOGIN URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_ValLogin
+#try:
+    #auth, username, password = user.invalid_creds()
+#Exception Handling that closes program if tkinter box is closed prematurely
+#except AttributeError:
+    #sys.exit("Program Terminated")
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 
 #---------IMPLEMENT UNIQUE CRAWLING LOGIC FOR STUDENT/ADVISOR----------
@@ -161,8 +168,9 @@ type_id = Select(driver.find_element_by_id("type_id"))
 
 #create folder using student name
 #search to see if student folder already exists
-#for some reason, relative path wasn't working, so I used absolute path
+#-----------------USE DESTINATION FOLDER FROM ABOVE TO SET PATH---------------
 path = "C:/Users/terre/Documents/Senior Project/AutoAdvisor/students/" + fullname
+#-----------------USE DESTINATION FOLDER FROM ABOVE TO SET PATH---------------
 if not os.path.exists(path):
     os.makedirs(path)
     if os.path.exists(path):
@@ -199,6 +207,8 @@ courses = []
 proto = []
 #used to determine if we reached the end of a semester
 counter = 0
+#used to determine if we reached current/future semesters
+is_curr = False
 
 for i in output:
     #1st index in course should be course abbreviation ID
@@ -217,9 +227,14 @@ for i in output:
         #if counter is at least 6, then we have likely passed the end
         #of a semester
         if counter >= 6 and len(courses) > 0:
-            courses.append("-")
+            #At least 18 elements are popped before we reach current/future semesters
+            if counter > 18:
+                is_curr = True
             courses.append("-")
         counter = 0
+        #add a marker for current/future courses in place of missing grade
+        if is_curr:
+            proto.append("inprog")
         #append course to course matrix
         proto.append(i.text)
         course = proto.copy()
@@ -232,12 +247,10 @@ for i in output:
     else:
         proto.append(i.text)
 
-#append delimiters for final course structure
-courses.append("-")
+#append dash for final course structure
 courses.append("-")
     
 #print courses to file
 create_file_path(fullname ,path, "/courses.txt", "courses", courses)
 
 driver.quit()
-
