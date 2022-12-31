@@ -1,37 +1,5 @@
-from preprocess import courses, curr_sems
+from preprocess import courses
 import re
-
-#print courses
-#course, name, grade, credits, semester
-print("------------------------------")
-csci = 0
-arts = 0
-in_prog = 0
-pending = 0
-credit_hours = 0
-
-for c in courses:
-    credit_hours += float(c[3])
-    if re.search("ARTS", c[0]):
-        arts += 1
-    elif re.search("CSCI", c[0]):
-        csci += 1
-        
-    if c[2] == "In progress":
-        if c[4] == curr_sems[0]:
-            in_prog += 1
-        else:
-            pending += 1
-
-    print(c[0],c[1],c[2],c[3],c[4])
-
-
-print("------------------------------")    
-print("ARTS Classes: ", str(arts))
-print("CSCI Classes: ", str(csci))
-print("Classes In Progress: ", str(in_prog))
-print("Future Classes: ", str(pending))
-print("------------------------------")
 
 #checks csci courses for passing grade in terms eligibility
 def csci_course_check (grade, sem, curr_sem):
@@ -67,6 +35,43 @@ def course_check (grade, sem, curr_sem):
             return True
     else:
         return False
+
+#array to store the current/future semesters
+curr_sems = []
+
+#print courses
+#course, name, grade, credits, semester
+print("------------------------------")
+csci = 0
+arts = 0
+in_prog = 0
+pending = 0
+credit_hours = 0
+
+for c in courses:
+    credit_hours += float(c[3])
+    if re.search("ARTS", c[0]):
+        arts += 1
+    elif re.search("CSCI", c[0]):
+        csci += 1
+        
+    if c[2] == "In progress":
+        if len(curr_sems) == 0:
+            curr_sems.append(c[4])
+        if c[4] == curr_sems[0]:
+            in_prog += 1
+        else:
+            pending += 1
+
+    print(c[0],c[1],c[2],c[3],c[4])
+
+
+print("------------------------------")    
+print("ARTS Classes: ", str(arts))
+print("CSCI Classes: ", str(csci))
+print("Classes In Progress: ", str(in_prog))
+print("Future Classes: ", str(pending))
+print("------------------------------")
 
 #check course stacks
 #course, name, grade, credits, semester
@@ -345,4 +350,3 @@ else:
 print('\n------------------------------')
 for n in recommendations:
     print(n)
-
