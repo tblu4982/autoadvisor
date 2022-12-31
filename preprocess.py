@@ -114,7 +114,3 @@ while i < len(courses):
         courses.pop(i)
         i -= 1
     i += 1
-print("------------------------------")
-
-for c in courses:
-    print(c)
