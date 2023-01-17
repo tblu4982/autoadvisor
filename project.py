@@ -137,14 +137,14 @@ pwd.send_keys(password)
 
 driver.find_element_by_xpath("//form").submit()
 
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
+#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE-------
 #INVALID LOGIN URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_ValLogin
 #try:
     #auth, username, password = user.invalid_creds()
 #Exception Handling that closes program if tkinter box is closed prematurely
 #except AttributeError:
     #sys.exit("Program Terminated")
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
+#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE-------
 
 #---------IMPLEMENT UNIQUE CRAWLING LOGIC FOR STUDENT/ADVISOR----------
 if auth == "advisor":
