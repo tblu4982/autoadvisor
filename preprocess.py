@@ -26,11 +26,12 @@ f1.close()
 j = 0
 while j < len(courses):
     if len(courses[j])>1:
-        if (courses[j][-2] == 'A') or (courses[j][-2] == 'B') or (courses[j][-2] == 'C') or \
-           (courses[j][-2] == 'D') or (courses[j][-2] == 'S') or (courses[j][-2] == 'SP') or \
-           (courses[j][-2] == 'F') or (courses[j][-2] == 'W') or (courses[j][-2] == 'U') or \
-           (courses[j][-2] == 'N') or (courses[j][-2] == 'I') or (courses[j][-2] == 'TR') or \
-           (courses[j][-2] == 'P') or (courses[j][-2] == 'inprog'):                   
+        grade = courses[j][-2]
+        if (grade == 'A') or (grade == 'B') or (grade == 'C') or \
+           (grade == 'D') or (grade == 'S') or (grade == 'SP') or \
+           (grade == 'F') or (grade == 'W') or (grade == 'U') or \
+           (grade == 'N') or (grade == 'I') or (grade == 'TR') or \
+           (grade == 'P') or (grade == 'inprog'):                   
             #do nothing
             j += 1
             continue
@@ -98,18 +99,21 @@ i = 0
 while i < len(courses):
     c = courses[i]
     #For certain courses, D is a failing grade
-    if c[0][:-4] == 'CSCI' or c[0][:-4] == "MATH" or \
-         c[0] == "ENGL 110" or c[0] == "ENGL 111":
-        if c[2] == 'F' or c[2] == 'U' or c[2] == 'N' or \
-        c[2] == 'D' or c[2] == 'W' or c[2] == 'I':
+    course = c[0]
+    ABBR = course[:-4]
+    grade = c[2]
+    if ABBR == 'CSCI' or ABBR == "MATH" or \
+         course == "ENGL 110" or course == "ENGL 111":
+        if grade == 'F' or grade == 'U' or grade == 'N' or \
+        grade == 'D' or grade == 'W' or grade == 'I':
             print(c)
             courses.pop(i)
             #decrement or else loop will skip
             #elements after popping an element
             i -= 1
     #For all other courses, D is not a failing grade
-    elif c[2] == 'F' or c[2] == 'U' or c[2] == 'N' or \
-         c[2] == 'W' or c[2] == 'I':
+    elif grade == 'F' or grade == 'U' or grade == 'N' or \
+         grade == 'W' or grade == 'I':
         print(c)
         courses.pop(i)
         i -= 1
