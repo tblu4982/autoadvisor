@@ -17,10 +17,8 @@ class credentials():
         user.title("Auto Advisor")
         welcome = Label(user, text = greeting)
         prompt = Label(user, text='Are you an Advisor or a Student?')
-        #-----------FIX ERROR HERE: AUTOMATICALLY TRIGGERS ADVISOR ON LAUNCH----------
-        advisor = Button(user, text="Advisor", command = self.click_advisor())
-        #-----------FIX ERROR HERE: AUTOMATICALLY TRIGGERS ADVISOR ON LAUNCH----------
-        student = Button(user, text="Student", command = lambda:[self.click_student(), user.destroy()])
+        advisor = Button(user, text="Advisor", command = lambda:[user.destroy(), self.click_advisor()])
+        student = Button(user, text="Student", command = lambda:[user.destroy(), self.click_student()])
 
         welcome.pack(side = TOP)
         prompt.pack(side = TOP)
@@ -30,21 +28,25 @@ class credentials():
 
     #method to grab student login info
     def click_student(self):
-        print("test")
+        print("Clicked 'Student'")
         self.auth = "student"
         #opens a window to grab student login info
         s_portal = Tk()
-        s_portal.geometry("200x70")
-        s_portal.title("Auto Advisor")
-        Label(s_portal, text='User ID').grid(row=0)
-        Label(s_portal, text='Password').grid(row=1)
+        s_portal.geometry("200x90")
+        s_portal.title("Auto Advisor - Student")
+        welcome = Label(s_portal, text = "Loggin in as: Student")
+        Label(s_portal, text='User ID').grid(row=1)
+        Label(s_portal, text='Password').grid(row=2)
         uid = Entry(s_portal)
-        pwd = Entry(s_portal)
+        pwd = Entry(s_portal, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(s_portal, text='Submit', command = lambda:[self.set_credentials(uid, pwd), s_portal.destroy()])
-        uid.grid(row = 0, column = 1)
-        pwd.grid(row = 1, column = 1)
+        back = Button(s_portal, text='Return', command = lambda:[s_portal.destroy(), self.greeting_window(self.greeting)])
+        welcome.grid(row = 0, columnspan = 3)
+        uid.grid(row = 1, column = 1, columnspan = 2)
+        pwd.grid(row = 2, column = 1, columnspan = 2)
         submit.grid(row = 3, column = 1)
+        back.grid(row = 3, column = 2)
         
     #sets user's login info
     def set_credentials(self, uid, pwd):
@@ -57,8 +59,25 @@ class credentials():
     
     #method to grab advisor login info
     def click_advisor(self):
-        auth = "advisor"
-        print("Advisor", "You clicked 'Advisor'")
+        print("Clicked 'Advisor'")
+        self.auth = "advisor"
+        #opens a window to grab student login info
+        s_portal = Tk()
+        s_portal.geometry("200x90")
+        s_portal.title("Auto Advisor - Advisor")
+        welcome = Label(s_portal, text = "Logging in as: Advisor")
+        Label(s_portal, text='User ID').grid(row=1)
+        Label(s_portal, text='Password').grid(row=2)
+        uid = Entry(s_portal)
+        pwd = Entry(s_portal, show ="*")
+        #when submit button is clicked, it sends credentials to Banner Portal
+        submit = Button(s_portal, text='Submit', command = lambda:[self.set_credentials(uid, pwd), s_portal.destroy()])
+        back = Button(s_portal, text='Return', command = lambda:[s_portal.destroy(), self.greeting_window(self.greeting)])
+        welcome.grid(row = 0, columnspan = 3)
+        uid.grid(row = 1, column = 1, columnspan = 2)
+        pwd.grid(row = 2, column = 1, columnspan = 2)
+        submit.grid(row = 3, column = 1)
+        back.grid(row = 3, column = 2)
 
     #method that prompts user to correct invalid login info
     def invalid_creds(self):
@@ -67,11 +86,11 @@ class credentials():
 
     #instantiates class
     def __init__(self):
-        username = " "
-        password = " "
-        auth = " "
-        greeting = 'Welcome to Auto-Advisor!'
-        self.greeting_window(greeting)
+        self.username = ""
+        self.password = ""
+        self.auth = ""
+        self.greeting = 'Welcome to Auto-Advisor!'
+        self.greeting_window(self.greeting)
 
 #method to return person's name
 def get_name(name):
@@ -123,8 +142,11 @@ try:
 except AttributeError:
     sys.exit("Program Terminated")
 
-#---------------USE TKINTER TO GET DESTINATION FOLDER----------------
-    
+if len(auth) == 0 or len(username) == 0 or len(password) == 0:
+    sys.exit("Credentials not set")
+
+#ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION
+#May be relevant: SessionNotCreatedException
 driver = webdriver.Edge(r'C:\Users\terre\Documents\edgedriver_win64\msedgedriver.exe')
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
 
@@ -137,14 +159,14 @@ pwd.send_keys(password)
 
 driver.find_element_by_xpath("//form").submit()
 
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE-------
+#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 #INVALID LOGIN URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_ValLogin
 #try:
     #auth, username, password = user.invalid_creds()
 #Exception Handling that closes program if tkinter box is closed prematurely
 #except AttributeError:
     #sys.exit("Program Terminated")
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE-------
+#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 
 #---------IMPLEMENT UNIQUE CRAWLING LOGIC FOR STUDENT/ADVISOR----------
 if auth == "advisor":
@@ -168,9 +190,7 @@ type_id = Select(driver.find_element_by_id("type_id"))
 
 #create folder using student name
 #search to see if student folder already exists
-#-----------------USE DESTINATION FOLDER FROM ABOVE TO SET PATH---------------
-path = "C:/Users/terre/Documents/Senior Project/AutoAdvisor/students/" + fullname
-#-----------------USE DESTINATION FOLDER FROM ABOVE TO SET PATH---------------
+path = "students/" + fullname
 if not os.path.exists(path):
     os.makedirs(path)
     if os.path.exists(path):
@@ -209,6 +229,9 @@ proto = []
 counter = 0
 #used to determine if we reached current/future semesters
 is_curr = False
+#constants used to improve readability
+END_OF_SEM = 6
+END_OF_GRADES = 18
 
 for i in output:
     #1st index in course should be course abbreviation ID
@@ -226,9 +249,9 @@ for i in output:
     elif re.search("[0-9].000", i.text):
         #if counter is at least 6, then we have likely passed the end
         #of a semester
-        if counter >= 6 and len(courses) > 0:
+        if counter >= END_OF_SEM and len(courses) > 0:
             #At least 18 elements are popped before we reach current/future semesters
-            if counter > 18:
+            if counter > END_OF_GRADES:
                 is_curr = True
             courses.append("-")
         counter = 0
@@ -254,3 +277,4 @@ courses.append("-")
 create_file_path(fullname ,path, "/courses.txt", "courses", courses)
 
 driver.quit()
+
