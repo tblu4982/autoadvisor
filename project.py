@@ -12,36 +12,36 @@ import sys #used to stop execution under certain circumstances
 class credentials():
     #Opens a window and prompts user to select if they are student or advisor
     def greeting_window (self, greeting):
-        user = Tk()
-        user.geometry("200x70")
-        user.title("Auto Advisor")
-        welcome = Label(user, text = greeting)
-        prompt = Label(user, text='Are you an Advisor or a Student?')
-        advisor = Button(user, text="Advisor", command = lambda:[user.destroy(), self.click_advisor()])
-        student = Button(user, text="Student", command = lambda:[user.destroy(), self.click_student()])
+        portal = Tk()
+        portal.geometry("200x70")
+        portal.title("Auto Advisor")
+        welcome = Label(portal, text = greeting)
+        prompt = Label(portal, text='Are you an Advisor or a Student?')
+        advisor = Button(portal, text="Advisor", command = lambda:[portal.destroy(), self.click_advisor()])
+        student = Button(portal, text="Student", command = lambda:[portal.destroy(), self.click_student()])
 
         welcome.pack(side = TOP)
         prompt.pack(side = TOP)
         advisor.pack(side = LEFT, expand = True, fill = BOTH)
         student.pack(side = LEFT, expand = True, fill = BOTH)
-        user.mainloop()
+        portal.mainloop()
 
     #method to grab student login info
     def click_student(self):
         print("Clicked 'Student'")
         self.auth = "student"
         #opens a window to grab student login info
-        s_portal = Tk()
-        s_portal.geometry("200x90")
-        s_portal.title("Auto Advisor - Student")
-        welcome = Label(s_portal, text = "Loggin in as: Student")
-        Label(s_portal, text='User ID').grid(row=1)
-        Label(s_portal, text='Password').grid(row=2)
-        uid = Entry(s_portal)
-        pwd = Entry(s_portal, show ="*")
+        login = Tk()
+        login.geometry("200x90")
+        login.title("Auto Advisor - Student")
+        welcome = Label(login, text = "Loggin in as: Student")
+        Label(login, text='User ID').grid(row=1)
+        Label(login, text='Password').grid(row=2)
+        uid = Entry(login)
+        pwd = Entry(login, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
-        submit = Button(s_portal, text='Submit', command = lambda:[self.set_credentials(uid, pwd), s_portal.destroy()])
-        back = Button(s_portal, text='Return', command = lambda:[s_portal.destroy(), self.greeting_window(self.greeting)])
+        submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
+        back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting)])
         welcome.grid(row = 0, columnspan = 3)
         uid.grid(row = 1, column = 1, columnspan = 2)
         pwd.grid(row = 2, column = 1, columnspan = 2)
@@ -62,17 +62,17 @@ class credentials():
         print("Clicked 'Advisor'")
         self.auth = "advisor"
         #opens a window to grab student login info
-        s_portal = Tk()
-        s_portal.geometry("200x90")
-        s_portal.title("Auto Advisor - Advisor")
-        welcome = Label(s_portal, text = "Logging in as: Advisor")
-        Label(s_portal, text='User ID').grid(row=1)
-        Label(s_portal, text='Password').grid(row=2)
-        uid = Entry(s_portal)
-        pwd = Entry(s_portal, show ="*")
+        login = Tk()
+        login.geometry("200x90")
+        login.title("Auto Advisor - Advisor")
+        welcome = Label(login, text = "Logging in as: Advisor")
+        Label(login, text='User ID').grid(row=1)
+        Label(login, text='Password').grid(row=2)
+        uid = Entry(login)
+        pwd = Entry(login, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
-        submit = Button(s_portal, text='Submit', command = lambda:[self.set_credentials(uid, pwd), s_portal.destroy()])
-        back = Button(s_portal, text='Return', command = lambda:[s_portal.destroy(), self.greeting_window(self.greeting)])
+        submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
+        back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting)])
         welcome.grid(row = 0, columnspan = 3)
         uid.grid(row = 1, column = 1, columnspan = 2)
         pwd.grid(row = 2, column = 1, columnspan = 2)
@@ -100,11 +100,11 @@ def get_name(name):
             return fullname
         
 #method to create file to store data
-def create_file_path(fullname ,path, sp_path, file_type, data):
+def create_file_path(fullname ,path, filename, file_type, array):
     #check if file directory exists
     if os.path.exists(path):
         #if folder exists, check if file already exists
-        file_path = path + sp_path
+        file_path = path + filename
         #if file exists, overwrite it
         if os.path.exists(file_path):
             #remove old file, then create new file
@@ -112,24 +112,24 @@ def create_file_path(fullname ,path, sp_path, file_type, data):
             os.remove(file_path)
             with open(file_path, 'w') as target_file:
                 if file_type == "courses":
-                    for line in data:
+                    for line in array:
                         for index in line:
                             target_file.write(index + " ")
                         target_file.write("\n")
                 else:
-                    for line in data:
+                    for line in array:
                         target_file.write(line + "\n")
         else:
             #create new file
             print("Creating " + file_type + " file for " + fullname + "...")
             with open(file_path, 'w') as target_file:
                 if file_type == "courses":
-                    for line in data:
+                    for line in array:
                         for index in line:
                             target_file.write(index + " ")
                         target_file.write("\n")
                 else:
-                    for line in data:
+                    for line in array:
                         target_file.write(line + "\n")
     else:
         print("Error! Folder path for " + fullname + " does not exist!")
