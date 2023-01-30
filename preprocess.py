@@ -20,30 +20,13 @@ for line in f1:
     #Create a list by splitting the a line. Each word is an item in list
     lineRec = line.split()
     courses.append(lineRec)
-f1.close()
-
-#Remove classes that are missing a grade
-j = 0
-while j < len(courses):
-    if len(courses[j])>1:
-        grade = courses[j][-2]
-        if (grade == 'A') or (grade == 'B') or (grade == 'C') or \
-           (grade == 'D') or (grade == 'S') or (grade == 'SP') or \
-           (grade == 'F') or (grade == 'W') or (grade == 'U') or \
-           (grade == 'N') or (grade == 'I') or (grade == 'TR') or \
-           (grade == 'P') or (grade == 'inprog'):                   
-            #do nothing
-            j += 1
-            continue
-        else:
-            courses.pop(j)
-            j -= 1
-    j += 1
+f1.close()  
 
 #Adjust courses to have course title as one element in list
 #For example ['CHEM', '152', 'General', 'Chemistry', 'II', 'S', '0.000'] becomes
 #['CHEM', '152', 'General Chemistry II ', 'S', '0.000']
 j=0
+in_prog = False
 for rec in courses:
     courseName = ""
     #For those who actually are course records not "-"
@@ -65,6 +48,16 @@ for rec in courses:
         #insert back course name as one string title
         courses[j].insert(2, courseName)
     j=j+1
+
+#For course matrices with multiple 'in progress' semesters,
+#Remove the last semester
+counter = 0
+for c in courses:
+    if c[0] == "-":
+        counter += 1
+
+while len(semesters) > counter:
+    semesters.pop()
 
 #Unify semester and course lists (Final Data structure view)
 #add semester to end of list
@@ -88,10 +81,11 @@ for c in courses:
     c[0] = course
     c.pop(1)
 
-#Replace 'inprog' with 'In progress'
+#Set semester and Replace 'inprog' with 'In progress',
 for c in courses:
     if c[2] == 'inprog':
         c[2] = 'In progress'
+        c[4] = 'In progress'
 
 #remove failed courses
 #course, name, grade, credits, semester    
