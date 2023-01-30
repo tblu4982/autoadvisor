@@ -1,5 +1,8 @@
 from preprocess import courses
 import re
+#-------create a global variable for core credits and total credits-----
+#fix cur_sems, if creating report from transcript with no current classes
+#then report will not generate
 
 #checks csci courses for passing grade in terms eligibility
 def csci_course_check (grade, sem, curr_sem):
@@ -350,3 +353,4 @@ else:
 print('\n------------------------------')
 for n in recommendations:
     print(n)
+
