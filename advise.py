@@ -1,8 +1,24 @@
 from preprocess import courses
 import re
+from datetime import datetime
+
 #-------create a global variable for core credits and total credits-----
-#fix cur_sems, if creating report from transcript with no current classes
-#then report will not generate
+
+def get_curr_sem():
+    month = datetime.now().month
+    year = datetime.now().year
+
+    if month >= 1:
+        if month >= 5:
+            if month <= 8:
+                if month == 12:
+                    return "Winter " + str(year)
+                else:
+                    return "Fall " + str(year)
+            else:
+                return "Summer " + str(year)
+        else:
+            return "Spring " + str(year)
 
 #checks csci courses for passing grade in terms eligibility
 def csci_course_check (grade, sem, curr_sem):
@@ -67,6 +83,9 @@ for c in courses:
             pending += 1
 
     print(c[0],c[1],c[2],c[3],c[4])
+
+if len(curr_sems) == 0:
+    curr_sems.append(get_curr_sem())
 
 
 print("------------------------------")    
@@ -353,4 +372,3 @@ else:
 print('\n------------------------------')
 for n in recommendations:
     print(n)
-
