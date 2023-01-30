@@ -1,6 +1,8 @@
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.edge.options import Options
 import tkinter #GUI
 from tkinter import *
 from tkinter import messagebox
@@ -189,18 +191,20 @@ if len(auth) == 0 or len(username) == 0 or len(password) == 0:
 
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
-driver = webdriver.Edge(r'C:\Users\terre\Documents\edgedriver_win64\msedgedriver.exe')
+options = Options()
+options.add_argument("headless")
+driver = webdriver.Edge(options = options)
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 
 #enter credentials into Banner
-uid = driver.find_element_by_id("UserID")
-pwd = driver.find_element_by_id("PIN")
+uid = driver.find_element(By.ID, "UserID")
+pwd = driver.find_element(By.ID, "PIN")
 
 uid.send_keys(username)
 pwd.send_keys(password)
 
-driver.find_element_by_xpath("//form").submit()
+driver.find_element(By.XPATH, "//form").submit()
 
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 #LANDING PAGE URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu
@@ -217,51 +221,51 @@ print(url)
 
 if auth == "advisor":
     #crawl through banner until we get to student id
-    driver.find_element_by_link_text("Faculty and Advisors").click()
-    driver.find_element_by_link_text("Student Information Menu").click()
-    driver.find_element_by_link_text("ID Selection").click()
+    driver.find_element(By.LINK_TEXT, "Faculty and Advisors").click()
+    driver.find_element(By.LINK_TEXT, "Student Information Menu").click()
+    driver.find_element(By.LINK_TEXT, "ID Selection").click()
     #The following dropdown menu lacks an id
     #so to select for current semester, I noticed html code stored
     #dropdown values as dates, I used a method to grab current
     #month and year, and store it to a variable to use as value
     date = get_timecode()
-    term = Select(driver.find_element_by_xpath("//select[@name='term']"))
+    term = Select(driver.find_element(By.XPATH, "//select[@name='term']"))
     term.select_by_value(date)
-    driver.find_element_by_xpath("//td[@class='dedefault']").submit()
+    driver.find_element(By.XPATH, "//td[@class='dedefault']").submit()
     #requests student id and uses it to get to transcript
     user.get_student_id()
     sid = user.return_sid()
-    vnum = driver.find_element_by_id("Stu_ID")
+    vnum = driver.find_element(By.ID, "Stu_ID")
     vnum.send_keys(sid)
-    driver.find_element_by_xpath("//table[contains(@class, 'dataentrytable')]").submit()
+    driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
     #gets student name
-    name = driver.find_element_by_tag_name('b')
+    name = driver.find_element(By.TAG_NAME, 'b')
     fullname = name.text.replace(" ", "").replace(".", "")
-    driver.find_element_by_xpath("//input[@type='submit' and @value='Submit']").submit()
+    driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
 
     #crawl webpage to academic transcript
-    driver.find_element_by_link_text("Academic Transcript").click()
+    driver.find_element(By.LINK_TEXT, "Academic Transcript").click()
 
-    levl_id = Select(driver.find_element_by_id("levl_id"))
-    type_id = Select(driver.find_element_by_id("tprt_id"))
+    levl_id = Select(driver.find_element(By.ID, "levl_id"))
+    type_id = Select(driver.find_element(By.ID, "tprt_id"))
 
 if auth == "student":
     #grab person's name to use for file name
-    name = driver.find_elements_by_xpath("//td[@class='pldefault']")
+    name = driver.find_elements(By.XPATH, "//td[@class='pldefault']")
     fullname = ""
     for i in name:
         if i.text[0:7] == "Welcome":
             fullname = i.text.split(",")[1].replace(" ", "").replace(".", "")
 
     #crawl webpage to academic transcript
-    driver.find_element_by_link_text("Student").click()
-    driver.find_element_by_link_text("Student Records").click()
+    driver.find_element(By.LINK_TEXT, "Student").click()
+    driver.find_element(By.LINK_TEXT, "Student Records").click()
 
     #crawl webpage to academic transcript
-    driver.find_element_by_link_text("Academic Transcript").click()
+    driver.find_element(By.LINK_TEXT, "Academic Transcript").click()
 
-    levl_id = Select(driver.find_element_by_id("levl_id"))
-    type_id = Select(driver.find_element_by_id("type_id"))
+    levl_id = Select(driver.find_element(By.ID, "levl_id"))
+    type_id = Select(driver.find_element(By.ID, "type_id"))
 
 #create folder using student name
 #search to see if student folder already exists
@@ -275,10 +279,10 @@ if not os.path.exists(path):
 else:
     print("Path already exists!")
 
-driver.find_element_by_xpath("//table[contains(@class, 'dataentrytable')]").submit()
+driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
 
 #scrape transcript for semester headers
-output = driver.find_elements_by_xpath("//span[contains(@class, 'fieldOrangetextbold')]")
+output = driver.find_elements(By.XPATH, "//span[contains(@class, 'fieldOrangetextbold')]")
 
 semesters = []
 for i in output:
@@ -295,7 +299,7 @@ for i in output:
 create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
 
 #scrape transcript for courses
-output = driver.find_elements_by_xpath("//td[contains(@class, 'dddefault')]")
+output = driver.find_elements(By.XPATH, "//td[contains(@class, 'dddefault')]")
 #stores courses as a course matrix
 courses = []
 #used to construct course line from web data
@@ -352,4 +356,3 @@ courses.append("-")
 create_file_path(fullname ,path, "/courses.txt", "courses", courses)
 
 driver.quit()
-
