@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import Select
 import tkinter #GUI
 from tkinter import *
 from tkinter import messagebox
+from datetime import datetime
 import os #used for read/write to files
 import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
@@ -79,6 +80,29 @@ class credentials():
         submit.grid(row = 3, column = 1)
         back.grid(row = 3, column = 2)
 
+    #grabs student id if advisor is logged in
+    def get_student_id(self):
+        get_sid = Tk()
+        get_sid.geometry("230x80")
+        get_sid.title("Auto Advisor")
+        prompt = Label(get_sid, text = "Enter Student V-Number")
+        Label(get_sid, text='V-Number:').grid(row = 1, column = 0)
+        sid = Entry(get_sid)
+        submit = Button(get_sid, text='Submit', command = lambda:[self.set_sid(sid), get_sid.destroy()])
+        cancel = Button(get_sid, text='Cancel', command = get_sid.destroy)
+        prompt.grid(row = 0, column = 1, columnspan = 2)
+        sid.grid(row = 1, column = 1, columnspan = 2)
+        submit.grid(row = 2, column = 1)
+        cancel.grid(row = 2, column = 2)
+        get_sid.mainloop()
+        
+    #returns student id
+    def set_sid(self, vnum):
+        self.sid = vnum.get()
+        
+    def return_sid(self):
+        return self.sid
+
     #method that prompts user to correct invalid login info
     def invalid_creds(self):
         self.greeting = 'Invalid login credentials!'
@@ -89,15 +113,33 @@ class credentials():
         self.username = ""
         self.password = ""
         self.auth = ""
+        self.sid = ""
         self.greeting = 'Welcome to Auto-Advisor!'
         self.greeting_window(self.greeting)
 
-#method to return person's name
-def get_name(name):
-    for i in name:
-        if i.text[0:7] == "Welcome":
-            fullname = i.text.split(",")[1].replace(" ", "").replace(".", "")
-            return fullname
+#method to return appropriate value for term dropdown
+def get_timecode():
+    #get current month and year
+    month = datetime.now().month
+    year = str(datetime.now().year)
+    #change month to string
+    if month >= 1:
+        #set month to "01" if month is between 1 and 4
+        if month >= 5:
+            #set month to "05" if month is between 5 and 7
+            if month >= 8:
+                #set month to "08" if month is between 8 and 11
+                if month == 12:
+                    #change month to string if month is 12
+                    month = "12"
+                else:
+                    month = "08"
+            else:
+                month = "05"
+        else:
+            month = "01"
+    #return year and month to use as value for dropdown selector
+    return year + month
         
 #method to create file to store data
 def create_file_path(fullname ,path, filename, file_type, array):
@@ -145,10 +187,11 @@ except AttributeError:
 if len(auth) == 0 or len(username) == 0 or len(password) == 0:
     sys.exit("Credentials not set")
 
-#ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION
+#--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
 driver = webdriver.Edge(r'C:\Users\terre\Documents\edgedriver_win64\msedgedriver.exe')
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
+#--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 
 #enter credentials into Banner
 uid = driver.find_element_by_id("UserID")
@@ -160,7 +203,11 @@ pwd.send_keys(password)
 driver.find_element_by_xpath("//form").submit()
 
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
-#INVALID LOGIN URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_ValLogin
+#LANDING PAGE URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu
+#use regular expressions since end of url can vary between users
+home_url = "https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu"
+url = driver.current_url.split("&")[0]
+print(url)
 #try:
     #auth, username, password = user.invalid_creds()
 #Exception Handling that closes program if tkinter box is closed prematurely
@@ -168,25 +215,53 @@ driver.find_element_by_xpath("//form").submit()
     #sys.exit("Program Terminated")
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
 
-#---------IMPLEMENT UNIQUE CRAWLING LOGIC FOR STUDENT/ADVISOR----------
 if auth == "advisor":
-    pass
+    #crawl through banner until we get to student id
+    driver.find_element_by_link_text("Faculty and Advisors").click()
+    driver.find_element_by_link_text("Student Information Menu").click()
+    driver.find_element_by_link_text("ID Selection").click()
+    #The following dropdown menu lacks an id
+    #so to select for current semester, I noticed html code stored
+    #dropdown values as dates, I used a method to grab current
+    #month and year, and store it to a variable to use as value
+    date = get_timecode()
+    term = Select(driver.find_element_by_xpath("//select[@name='term']"))
+    term.select_by_value(date)
+    driver.find_element_by_xpath("//td[@class='dedefault']").submit()
+    #requests student id and uses it to get to transcript
+    user.get_student_id()
+    sid = user.return_sid()
+    vnum = driver.find_element_by_id("Stu_ID")
+    vnum.send_keys(sid)
+    driver.find_element_by_xpath("//table[contains(@class, 'dataentrytable')]").submit()
+    #gets student name
+    name = driver.find_element_by_tag_name('b')
+    fullname = name.text.replace(" ", "").replace(".", "")
+    driver.find_element_by_xpath("//input[@type='submit' and @value='Submit']").submit()
+
+    #crawl webpage to academic transcript
+    driver.find_element_by_link_text("Academic Transcript").click()
+
+    levl_id = Select(driver.find_element_by_id("levl_id"))
+    type_id = Select(driver.find_element_by_id("tprt_id"))
 
 if auth == "student":
-    pass
-#---------IMPLEMENT UNIQUE CRAWLING LOGIC FOR STUDENT/ADVISOR----------
+    #grab person's name to use for file name
+    name = driver.find_elements_by_xpath("//td[@class='pldefault']")
+    fullname = ""
+    for i in name:
+        if i.text[0:7] == "Welcome":
+            fullname = i.text.split(",")[1].replace(" ", "").replace(".", "")
 
-#grab person's name to use for file name
-name = driver.find_elements_by_xpath("//td[@class='pldefault']")
-fullname = get_name(name)
+    #crawl webpage to academic transcript
+    driver.find_element_by_link_text("Student").click()
+    driver.find_element_by_link_text("Student Records").click()
 
-#crawl webpage to academic transcript
-driver.find_element_by_link_text("Student").click()
-driver.find_element_by_link_text("Student Records").click()
-driver.find_element_by_link_text("Academic Transcript").click()
+    #crawl webpage to academic transcript
+    driver.find_element_by_link_text("Academic Transcript").click()
 
-levl_id = Select(driver.find_element_by_id("levl_id"))
-type_id = Select(driver.find_element_by_id("type_id"))
+    levl_id = Select(driver.find_element_by_id("levl_id"))
+    type_id = Select(driver.find_element_by_id("type_id"))
 
 #create folder using student name
 #search to see if student folder already exists
