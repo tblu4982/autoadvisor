@@ -138,175 +138,134 @@ print("Total Credits: ", str(total_credits))
 print("------------------------------")
 
 #check course stacks
+math_stack = "MATH: "
+csci_stack = "CSCI: "
+engl_stack = "ENGL: "
+misc_stack = "MISC: "
 
 #loop through matrix to find courses matching requirements
 for c in courses:
     passed_course = False
-    if c[0] in core_course_stack:
-        if c[0] == "PHIL 450" or c[0] == "PHIL 275" or c[0] == "ENGL 342":
-            passed_course = passing_grade_alt(c[2], c[4], curr_sems)
+    course = c[0]
+    grade = c[2]
+    term = c[4]
+    abbr = course[:5]
+    if course in core_course_stack:
+        if course == "PHIL 450" or course == "PHIL 275" or course == "ENGL 342":
+            passed_course = passing_grade_alt(grade, term, curr_sems)
         else:
-            passed_course = passing_grade(c[2], c[4], curr_sems)
+            passed_course = passing_grade(grade, term, curr_sems)
         if passed_course:
-            core_course_stack[c[0]] = True
+            core_course_stack[course] = True
+            if abbr == "MATH ":
+                math_stack += course + " "
+            if abbr == "CSCI ":
+                csci_stack += course + " "
+            if abbr == "ENGL ":
+                engl_stack += course + " "
+            if abbr == "PHIL ":
+                misc_stack += course + " "
             
 #list to hold course recommendations
 recommendations = []
 
 #Math courses stack
-print("MATH:", end= " ")
 if core_course_stack["MATH 260"]:
-    print("MATH 260", end = " ")
     if core_course_stack["MATH 261"]:
-        print(", MATH 261", end = " ")
-        if core_course_stack["STAT 340"] and core_course_stack["CSCI 281"]:
-            print(", STAT 340", end = " ")
-        elif core_course_stack["CSCI 281"]:
+        if core_course_stack["CSCI 281"] and not core_course_stack["STAT 340"]:
             recommendations.append("Recommend STAT 340")
-        else:
-            print("\nNeed CSCI 281 before STAT 340")
     else:       
         recommendations.append("Recommend MATH 261")
 else:
     recommendations.append("Recommend MATH 260")
 
-if core_course_stack["MATH 280"]:
-    print("MATH 280", end = " ")
-
-print("\n------------------------------")
+if not core_course_stack["MATH 280"]:
+    recommendations.append("Recommend MATH 280")
 
 #CSCI courses stack
-print("CSCI:", end= " ")
-if core_course_stack["CSCI 101"]:
-    print("CSCI 101", end= " ")
-else:
+if not core_course_stack["CSCI 101"]:
     recommendations.append("Recommend CSCI 101")
 
-if core_course_stack["CSCI 150"]:
-    print("CSCI 150", end= " ")
-else:
+if not core_course_stack["CSCI 150"]:
     recommendations.append("Recommend CSCI 150")
 
-if core_course_stack["CSCI 151"]:
-    print("CSCI 151", end= " ")
-else:
+if not core_course_stack["CSCI 151"]:
     recommendations.append("Recommend CSCI 151")
 
 if core_course_stack["MATH 280"]:
     if core_course_stack["CSCI 281"]:
-        print("CSCI 281", end= " ")
+        if core_course_stack["CSCI 287"] and not core_course_stack["CSCI 392"]:
+            recommendations.append("Recommend CSCI 392")
     else:
         recommendations.append("Recommend CSCI 281")
-        if core_course_stack["CSCI 392"] and core_course_stack["CSCI 287"]:
-            print("CSCI 392", end= " ")
-        elif core_course_stack["CSCI 287"]:
-            recommendations.append("Recommend CSCI 392")
-        else:
-            print("\nNeed CSCI 287 before CSCI 392")
 
 if core_course_stack["CSCI 150"] and core_course_stack["CSCI 151"]:
-    if core_course_stack["CSCI 250"]:
-        print("CSCI 250", end= " ")
-    else:
+    if not core_course_stack["CSCI 250"]:
         recommendations.append("Recommend CSCI 250")
 
-    if core_course_stack["CSCI 251"]:
-        print("CSCI 251", end= " ")
-    else:
+    if not core_course_stack["CSCI 251"]:
         recommendations.append("Recommend CSCI 251")
 
     if core_course_stack["CSCI 250"] and core_course_stack["CSCI 251"]:
-        if core_course_stack["CSCI 296"]:
-            print("CSCI 296", end= " ")
-        else:
+        if not core_course_stack["CSCI 296"]:
             recommendations.append("Recommend CSCI 296")
 
-        if core_course_stack["CSCI 356"]:
-            print("CSCI 356", end= " ")
-        else:
+        if not core_course_stack["CSCI 356"]:
             recommendations.append("Recommend CSCI 356")
 
-        if core_course_stack["CSCI 358"]:
-            print("CSCI 358", end= " ")
-        else:
+        if not core_course_stack["CSCI 358"]:
             recommendations.append("Recommend CSCI 358")
 
         if core_course_stack["CSCI 287"]:
-            print("CSCI 287", end= " ")
-            if core_course_stack["CSCI 487"]:
-                print("CSCI 487", end= " ")
-            else:
+            if not core_course_stack["CSCI 487"]:
                 recommendations.append("Recommend CSCI 487")
-            if core_course_stack["CSCI 471"]:
-                print("CSCI 471", end= " ")
-            else:
+            if not core_course_stack["CSCI 471"]:
                 recommendations.append("Recommend CSCI 471")
-            if core_course_stack["CSCI 485"]:
-                print("CSCI 485", end= " ")
-            else:
+            if not core_course_stack["CSCI 485"]:
                 recommendations.append("Recommend CSCI 485")
         else:
             recommendations.append("Recommend CSCI 287")
 
         if core_course_stack["CSCI 303"]:
-            print("CSCI 303", end= " ")
-            if core_course_stack["CSCI 489"]:
-                print("CSCI 489", end= " ")
-            else:
+            if not core_course_stack["CSCI 489"]:
                 recommendations.append("Recommend CSCI 489")
-            if core_course_stack["CSCI 445"]:
-                print("CSCI 445", end= " ")
-            else:
+            if not core_course_stack["CSCI 445"]:
                 recommendations.append("Recommend CSCI 445")
         else:
             recommendations.append("Recommend CSCI 303")
 
 if core_course_stack["CSCI 400"]:
-    print("CSCI 400", end= " ")
     if core_course_stack["CSCI 493"]:
-        print("CSCI 493", end= " ")
-        if core_course_stack["CSCI 494"]:
-            print("CSCI 494", end= " ")
-        else:
+        if not core_course_stack["CSCI 494"]:
             recommendations.append("Recommend CSCI 494")
     else:
         recommendations.append("Recommend CSCI 493")
 elif total_credits > 75:
     recommendations.append("Recommend CSCI 400")
 
-print("\n------------------------------")
-
 #English courses stack
-print("ENGL:", end= " ")
-
 if core_course_stack["ENGL 110"]:
-    print("ENGL 110", end= " ")
     if core_course_stack["ENGL 111"]:
-        print("ENGL 111", end= " ")
-        if core_course_stack["ENGL 342"]:
-            print("ENGL 342", end= " ")
-        else:
+        if not core_course_stack["ENGL 342"]:
             recommendations.append("Recommend ENGL 342")
     else:
         recommendations.append("Recommend ENGL 111")
 else:
     recommendations.append("Recommend ENGL 110")
 
-print("\n------------------------------")
-
 #Miscellaneous courses stack
-print("MISC:", end = " ")
-
-if core_course_stack["PHIL 450"] or core_course_stack["PHIL 275"]:
-    if core_course_stack["PHIL 450"]:
-        print("PHIL 450", end= " ")
-    else:
-        print("PHIL 275", end= " ")
-else:
+if not core_course_stack["PHIL 450"] or core_course_stack["PHIL 275"]:
     recommendations.append("Recommend PHIL 450 or PHIL 275")
 
 #print course recommendations
-print('\n------------------------------')
+print(math_stack)
+print('------------------------------')
+print(csci_stack)
+print('------------------------------')
+print(engl_stack)
+print('------------------------------')
+print(misc_stack)
+print('------------------------------')
 for n in recommendations:
     print(n)
 
