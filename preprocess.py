@@ -6,9 +6,8 @@ f2 = open("students\\" + fullname + "\semesters.txt", "r")
 #Read semesters from file and insert it into list semesters
 semesters = []
 for line in f2:
-    line=line.strip()
-    line = line[6:]
-    if len(line) > 0:
+    if len(line) > 2:
+        line=line.strip()
         semesters.append(line)
 f2.close()
 
@@ -49,16 +48,6 @@ for rec in courses:
         courses[j].insert(2, courseName)
     j=j+1
 
-#For course matrices with multiple 'in progress' semesters,
-#Remove the last semester
-counter = 0
-for c in courses:
-    if c[0] == "-":
-        counter += 1
-
-while len(semesters) > counter:
-    semesters.pop()
-
 #Unify semester and course lists (Final Data structure view)
 #add semester to end of list
 i = 0
@@ -85,7 +74,6 @@ for c in courses:
 for c in courses:
     if c[2] == 'inprog':
         c[2] = 'In progress'
-        c[4] = 'In progress'
 
 #remove failed courses
 #course, name, grade, credits, semester    
