@@ -192,7 +192,9 @@ if len(auth) == 0 or len(username) == 0 or len(password) == 0:
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
 options = Options()
+#--------------COMMENT OUT WHEN TESTING OR DEBUGGING---------------
 options.add_argument("headless")
+#--------------COMMENT OUT WHEN TESTING OR DEBUGGING---------------
 driver = webdriver.Edge(options = options)
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
@@ -218,6 +220,8 @@ print(url)
 #except AttributeError:
     #sys.exit("Program Terminated")
 #--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
+
+fullname = ""
 
 if auth == "advisor":
     #crawl through banner until we get to student id
@@ -252,7 +256,6 @@ if auth == "advisor":
 if auth == "student":
     #grab person's name to use for file name
     name = driver.find_elements(By.XPATH, "//td[@class='pldefault']")
-    fullname = ""
     for i in name:
         if i.text[0:7] == "Welcome":
             fullname = i.text.split(",")[1].replace(" ", "").replace(".", "")
@@ -268,91 +271,79 @@ if auth == "student":
     type_id = Select(driver.find_element(By.ID, "type_id"))
 
 #create folder using student name
-#search to see if student folder already exists
-path = "students/" + fullname
-if not os.path.exists(path):
-    os.makedirs(path)
-    if os.path.exists(path):
-        print("Path successfully created!")
+#check if name has been established
+if not len(fullname) == 0:
+    #search to see if student folder already exists
+    path = "students/" + fullname
+    if not os.path.exists(path):
+        os.makedirs(path)
+        if os.path.exists(path):
+            print("Path successfully created!")
+        else:
+            print("Failed to create path!")
     else:
-        print("Failed to create path!")
+        print("Path already exists!")
 else:
-    print("Path already exists!")
+    sys.exit("An unexpected error has occurred: Unable to locate student's name!")
 
 driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
 
-#scrape transcript for semester headers
-output = driver.find_elements(By.XPATH, "//span[contains(@class, 'fieldOrangetextbold')]")
+#scrape transcript for courses and semesters
+output = driver.find_elements(By.XPATH, "//tr")
 
-semesters = []
-for i in output:
-    #check if semester is properly structured
-    if i.text[:6] == "Term: ":
-        semesters.append(i.text)
-        semesters.append(" ")
-    #structure semester to add missing information
-    else:
-        semesters.append("Term: " + i.text)
-        semesters.append(" ")
-
-#print semesters to file
-create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
-
-#scrape transcript for courses
-output = driver.find_elements(By.XPATH, "//td[contains(@class, 'dddefault')]")
-#stores courses as a course matrix
 courses = []
-#used to construct course line from web data
-proto = []
-#used to determine if we reached the end of a semester
-counter = 0
+semesters = []
+#boolean flags to distinguish semesters
+sem_start = sem_end = False
 #used to determine if we reached current/future semesters
 is_curr = False
-#constants used to improve readability
-END_OF_SEM = 6
-END_OF_GRADES = 18
 
 for i in output:
-    #1st index in course should be course abbreviation ID
-    if len(i.text) == 4:
-        proto.append(i.text)
-    #if we reach this, then we are in between courses
-    elif len(proto) == 0:
-        #If there are no courses in matrix, then no need to increment
-        if len(courses) == 0:
-            continue
-        else:
-            counter += 1
-            continue
-    #if we reach this, then we have reached the end of a course
-    elif re.search("[0-9].000", i.text):
-        #if counter is at least 6, then we have likely passed the end
-        #of a semester
-        if counter >= END_OF_SEM and len(courses) > 0:
-            #At least 18 elements are popped before we reach current/future semesters
-            if counter > END_OF_GRADES:
-                is_curr = True
+    #Find each semester as we iterate through scraped data
+    #signifies the start of courses in progress
+    if re.search("COURSES IN PROGRESS", i.text) and not is_curr:
+        is_curr = True
+    if re.search("Spring", i.text) or re.search("Summer", i.text) or \
+       re.search("Fall", i.text) or re.search("Winter", i.text):
+        if sem_start:
+            #lets us know that we've reached the end of a previous semester
+            sem_end = True
+        #signifies the start of a new semester
+        sem_start = True
+        #store the current semester into semesters array
+        semesters.append(i.text)
+        semesters.append("-")
+    #if we are in a semester, find the courses
+    elif sem_start:
+        #add marker to course array to signify semesters
+        if sem_end:
             courses.append("-")
-        counter = 0
-        #add a marker for current/future courses in place of missing grade
-        if is_curr:
-            proto.append("inprog")
-        #append course to course matrix
-        proto.append(i.text)
-        course = proto.copy()
-        #remove "U" from course
-        if course[2] == "U":
-            course.pop(2)
-        courses.append(course)
-        proto.clear()
-    #if we reach this, then we are not at the end of a course
-    else:
-        proto.append(i.text)
+            sem_end = False
+        #find a course and store it to the holder array
+        if re.search("[A-Z][A-Z][A-Z][A-Z] ", i.text) and not re.search("-Top-", i.text):
+            proto = i.text.replace("\n", " ").split(" ")
+            #check if we reached current/future semesters
+            if is_curr:
+                #pop excess list indices
+                while not re.search("[0-9]", proto[-1]):
+                    proto.pop()
+                #add 'inprog' to courses in progress
+                proto.insert(-1, "inprog")
+            #we reach this if we are not in current/future semesters
+            else:
+                while not re.search("[0-9]", proto[-1]):
+                    proto.pop()
+                #past courses have one more filled index than current/future sems
+                proto.pop()
+            #append the holder array to courses
+            courses.append(proto)
 
-#append dash for final course structure
+#Web driver is no longer needed
+driver.quit()
+#Append separator for final course structure
 courses.append("-")
     
 #print courses to file
 create_file_path(fullname ,path, "/courses.txt", "courses", courses)
-
-driver.quit()
+#print semesters to file
+create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
