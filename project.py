@@ -335,6 +335,9 @@ for i in output:
                     proto.pop()
                 #past courses have one more filled index than current/future sems
                 proto.pop()
+            #remove 'U' from courses
+            if proto[2] == "U":
+                proto.pop(2)
             #append the holder array to courses
             courses.append(proto)
 
