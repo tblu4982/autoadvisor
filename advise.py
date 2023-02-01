@@ -13,7 +13,7 @@ def passing_grade(grade, sem, curr_sems):
         #from course recommendations
         #If course is from this semester, include it
         if grade == "In progress":
-            if sem == curr_sems:
+            if sem == curr_sems[0]:
                 return True
             #If course is from future semester, omit it
             else:
@@ -31,7 +31,7 @@ def passing_grade_alt(grade, sem, curr_sems):
     if grade <= "D" or grade == "S" or grade == "TR" or grade == "In progress" \
        or grade == "SP":
         if grade == "In progress":
-            if sem == curr_sems:
+            if sem == curr_sems[0]:
                 return True
             else:
                 return False
