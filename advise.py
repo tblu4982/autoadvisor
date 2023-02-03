@@ -151,6 +151,32 @@ def get_curr_sem():
         else:
             return "Spring " + str(year)
 
+def print_to_file(path):
+    with open(path, 'w') as file:
+        file.write("------------------------------\n")
+        file.write("ARTS Classes: " + str(arts) + "\n")
+        file.write("CSCI Classes: " + str(csci) + "\n")
+        file.write("Classes In Progress: " + str(in_prog) + "\n")
+        file.write("Future Classes: " + str(pending) + "\n")
+        file.write("Core Credits: " + str(core_credits) + "\n")
+        file.write("Total Credits: " + str(total_credits) + "\n")
+        file.write("------------------------------\n")
+        file.write(math_stack + "\n------------------------------\n")
+        file.write(csci_stack + "\n------------------------------\n")
+        file.write(engl_stack + "\n------------------------------\n")
+        file.write(misc_stack + "\n------------------------------\n")
+        file.write(gs_stack + "\n------------------------------\n")
+        file.write(lit_stack + "\n------------------------------\n")
+        file.write(ss_stack + "\n------------------------------\n")
+        file.write(csci_elec_stack + "\n------------------------------\n")
+        file.write(math_elec_stack + "\n------------------------------\n")
+        file.write(hist_stack + "\n------------------------------\n")
+        file.write(cms_stack + "\n------------------------------\n")
+        file.write(free_stack + "\n------------------------------\n")
+        file.write(unused + "\n------------------------------\n")
+        for n in recommendations:
+            file.write(n + "\n")
+
 #Dictionary to hold core course stack, as we traverse through course matrix,
 #we'll set dict values to true as we find them
 core_course_stack = {"MATH 260": False, "CSCI 101": False, "CSCI 150": False, "CSCI 151": False,
@@ -411,54 +437,11 @@ if not core_course_stack["PHIL 450"] or core_course_stack["PHIL 275"]:
 
 #write advisory report to file
 path = "students\\" + fullname + "\\advise.txt"
+#check if file already exists
 if os.path.exists(path):
+    #if it exists, update it
     os.remove(path)
-    with open(path, 'w') as file:
-        file.write("------------------------------\n")
-        file.write("ARTS Classes: " + str(arts) + "\n")
-        file.write("CSCI Classes: " + str(csci) + "\n")
-        file.write("Classes In Progress: " + str(in_prog) + "\n")
-        file.write("Future Classes: " + str(pending) + "\n")
-        file.write("Core Credits: " + str(core_credits) + "\n")
-        file.write("Total Credits: " + str(total_credits) + "\n")
-        file.write("------------------------------\n")
-        file.write(math_stack + "\n------------------------------\n")
-        file.write(csci_stack + "\n------------------------------\n")
-        file.write(engl_stack + "\n------------------------------\n")
-        file.write(misc_stack + "\n------------------------------\n")
-        file.write(gs_stack + "\n------------------------------\n")
-        file.write(lit_stack + "\n------------------------------\n")
-        file.write(ss_stack + "\n------------------------------\n")
-        file.write(csci_elec_stack + "\n------------------------------\n")
-        file.write(math_elec_stack + "\n------------------------------\n")
-        file.write(hist_stack + "\n------------------------------\n")
-        file.write(cms_stack + "\n------------------------------\n")
-        file.write(free_stack + "\n------------------------------\n")
-        file.write(unused + "\n------------------------------\n")
-        for n in recommendations:
-            file.write(n + "\n")
+    print_to_file(path)
+#if not, create it
 else:
-    with open(path, 'w') as file:
-        file.write("------------------------------\n")
-        file.write("ARTS Classes: " + str(arts) + "\n")
-        file.write("CSCI Classes: " + str(csci) + "\n")
-        file.write("Classes In Progress: " + str(in_prog) + "\n")
-        file.write("Future Classes: " + str(pending) + "\n")
-        file.write("Core Credits: " + str(core_credits) + "\n")
-        file.write("Total Credits: " + str(total_credits) + "\n")
-        file.write("------------------------------\n")
-        file.write(math_stack + "\n------------------------------\n")
-        file.write(csci_stack + "\n------------------------------\n")
-        file.write(engl_stack + "\n------------------------------\n")
-        file.write(misc_stack + "\n------------------------------\n")
-        file.write(gs_stack + "\n------------------------------\n")
-        file.write(lit_stack + "\n------------------------------\n")
-        file.write(ss_stack + "\n------------------------------\n")
-        file.write(csci_elec_stack + "\n------------------------------\n")
-        file.write(math_elec_stack + "\n------------------------------\n")
-        file.write(hist_stack + "\n------------------------------\n")
-        file.write(cms_stack + "\n------------------------------\n")
-        file.write(free_stack + "\n------------------------------\n")
-        file.write(unused + "\n------------------------------\n")
-        for n in recommendations:
-            file.write(n + "\n")
+    print_to_file(path)
