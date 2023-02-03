@@ -289,7 +289,7 @@ else:
 driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
 
 #scrape transcript for courses and semesters
-output = driver.find_elements(By.XPATH, "//tr")
+data = driver.find_elements(By.XPATH, "//table[@class = 'datadisplaytable']")
 
 courses = []
 semesters = []
@@ -297,21 +297,26 @@ semesters = []
 sem_start = sem_end = False
 #used to determine if we reached current/future semesters
 is_curr = False
+#used to hold course as we build it from data
+proto = ""
 
-for i in output:
+for i in data:
+    output = i.text.split('\n')
+
+for line in output:
     #Find each semester as we iterate through scraped data
     #signifies the start of courses in progress
-    if re.search("COURSES IN PROGRESS", i.text) and not is_curr:
+    if re.search("COURSES IN PROGRESS", line) and not is_curr:
         is_curr = True
-    if re.search("Spring", i.text) or re.search("Summer", i.text) or \
-       re.search("Fall", i.text) or re.search("Winter", i.text):
+    if re.search("Spring", line) or re.search("Summer", line) or \
+       re.search("Fall", line) or re.search("Winter", line):
         if sem_start:
             #lets us know that we've reached the end of a previous semester
             sem_end = True
         #signifies the start of a new semester
         sem_start = True
         #store the current semester into semesters array
-        semesters.append(i.text)
+        semesters.append(line)
         semesters.append("-")
     #if we are in a semester, find the courses
     elif sem_start:
@@ -319,27 +324,26 @@ for i in output:
         if sem_end:
             courses.append("-")
             sem_end = False
+        #append credits to course
+        if len(proto) > 0:
+            proto.append(line)
+            course = proto.copy()
+            #pop empty indices at beginning of course
+            while len(course[0]) == 0:
+                course.pop(0)
+            #remove 'U' from courses
+            if course[2] == 'U':
+                course.pop(2)
+            #append course to array and reset proto
+            courses.append(course)
+            proto.clear()
         #find a course and store it to the holder array
-        if re.search("[A-Z][A-Z][A-Z][A-Z] ", i.text) and not re.search("-Top-", i.text):
-            proto = i.text.replace("\n", " ").split(" ")
+        elif re.search("[A-Z]{4} ", line) and not re.search("-Top-", line):
+            proto = line.replace("\n", " ").split(" ")
             #check if we reached current/future semesters
             if is_curr:
-                #pop excess list indices
-                while not re.search("[0-9]", proto[-1]):
-                    proto.pop()
-                #add 'inprog' to courses in progress
-                proto.insert(-1, "inprog")
-            #we reach this if we are not in current/future semesters
-            else:
-                while not re.search("[0-9]", proto[-1]):
-                    proto.pop()
-                #past courses have one more filled index than current/future sems
-                proto.pop()
-            #remove 'U' from courses
-            if proto[2] == "U":
-                proto.pop(2)
-            #append the holder array to courses
-            courses.append(proto)
+                #add 'inprog' to current/future courses
+                proto.append("inprog")
 
 #Web driver is no longer needed
 driver.quit()
