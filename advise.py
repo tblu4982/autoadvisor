@@ -50,7 +50,7 @@ other = Border(left = Side(style = 'thin'),
 redFill = PatternFill('solid', fgColor = 'FF0000')
 greenFill = PatternFill('solid', fgColor = '00FF00')
 yellowFill = PatternFill('solid', fgColor = 'FFFF00')
-blueFill = PatternFill('solid', fgColor = '0000FF')
+blueFill = PatternFill('solid', fgColor = '00BFFF')
 
 #at least 8 csci courses, 60 credits, and csci 287 before 400-level csci courses
 #method to check if a course has a passing grade where a passing grade is 'C'
