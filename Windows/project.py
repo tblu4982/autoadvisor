@@ -2,6 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.edge.options import Options
+from selenium.common.exceptions import NoSuchElementException
 import tkinter #GUI
 from tkinter import *
 from tkinter import messagebox
@@ -19,27 +21,21 @@ class credentials():
         portal.geometry("200x70")
         portal.title("Auto Advisor")
         welcome = Label(portal, text = greeting)
-        prompt = Label(portal, text='Are you an Advisor or a Student?')
-        advisor = Button(portal, text="Advisor", command = lambda:[portal.destroy(), self.click_advisor()])
-        student = Button(portal, text="Student", command = lambda:[portal.destroy(), self.click_student()])
+        login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
 
         welcome.pack(side = TOP)
-        prompt.pack(side = TOP)
-        advisor.pack(side = LEFT, expand = True, fill = BOTH)
-        student.pack(side = LEFT, expand = True, fill = BOTH)
+        login.pack(side = BOTTOM)
         portal.mainloop()
 
     #method to grab student login info
-    def click_student(self):
-        print("Clicked 'Student'")
-        self.auth = "student"
+    def click_login(self):
         #opens a window to grab student login info
         login = Tk()
         login.geometry("200x90")
         login.title("Auto Advisor - Student")
-        welcome = Label(login, text = "Logging in as: Student")
-        Label(login, text='User ID').grid(row=1)
-        Label(login, text='Password').grid(row=2)
+        welcome = Label(login, text = "Enter your V-Number and PIN:")
+        Label(login, text='V-Number').grid(row=1)
+        Label(login, text='PIN').grid(row=2)
         uid = Entry(login)
         pwd = Entry(login, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
@@ -58,62 +54,29 @@ class credentials():
         
     #returns login info
     def get_credentials(self):
-        return self.auth, self.username, self.password
-    
-    #method to grab advisor login info
-    def click_advisor(self):
-        print("Clicked 'Advisor'")
-        self.auth = "advisor"
-        #opens a window to grab student login info
-        login = Tk()
-        login.geometry("200x90")
-        login.title("Auto Advisor - Advisor")
-        welcome = Label(login, text = "Logging in as: Advisor")
-        Label(login, text='User ID').grid(row=1)
-        Label(login, text='Password').grid(row=2)
-        uid = Entry(login)
-        pwd = Entry(login, show ="*")
-        #when submit button is clicked, it sends credentials to Banner Portal
-        submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
-        back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting)])
-        welcome.grid(row = 0, columnspan = 3)
-        uid.grid(row = 1, column = 1, columnspan = 2)
-        pwd.grid(row = 2, column = 1, columnspan = 2)
-        submit.grid(row = 3, column = 1)
-        back.grid(row = 3, column = 2)
+        return self.username, self.password
 
-    #grabs student id if advisor is logged in
-    def get_student_id(self):
-        get_sid = Tk()
-        get_sid.geometry("230x80")
-        get_sid.title("Auto Advisor")
-        prompt = Label(get_sid, text = "Enter Student V-Number")
-        Label(get_sid, text='V-Number:').grid(row = 1, column = 0)
-        sid = Entry(get_sid)
-        submit = Button(get_sid, text='Submit', command = lambda:[self.set_sid(sid), get_sid.destroy()])
-        cancel = Button(get_sid, text='Cancel', command = get_sid.destroy)
-        prompt.grid(row = 0, column = 1, columnspan = 2)
-        sid.grid(row = 1, column = 1, columnspan = 2)
-        submit.grid(row = 2, column = 1)
-        cancel.grid(row = 2, column = 2)
-        get_sid.mainloop()
-        
-    #returns student id
-    def set_sid(self, vnum):
-        self.sid = vnum.get()
-        
-    def return_sid(self):
-        return self.sid
-
+    #warns the user that they have failed to log in 3 times
     def login_warning(self):
         warn = Tk()
         warn.geometry("200x90")
         warn.title("Warning!")
-        warning = Label("Warning! You have failed to login 3 times now. " + \
-                        "Please ensure that you enter your information correctly.")
+        warning = Label(text = "Warning! You have failed to login 3 times now. Please ensure that you enter your information correctly.")
+        back = Button(warn, text='Return', command = lambda:[warn.destroy(), self.greeting_window(self.greeting)])
+        warning.pack(side = TOP)
+        back.pack(side = TOP)
+        warn.mainloop()
 
+    #terminates the program if user fails to log in 4 times
     def login_timeout(self):
-        pass
+        terminate = Tk()
+        terminate.geometry("200x90")
+        terminate.title("Too Many Login Attempts")
+        message = Label(text = "You have attempted too many failed login attempts. To prevent account lockout, please try again later.")
+        end = Button(terminate, text='Exit', command = lambda:[terminate.destroy(), driver.quit(), sys.exit("Program Terminated: Too Many Login Attempts!")])
+        message.pack(side = TOP)
+        end.pack(side = TOP)
+        terminate.mainloop()
 
     #method that prompts user to correct invalid login info
     def invalid_creds(self):
@@ -130,8 +93,6 @@ class credentials():
     def __init__(self):
         self.username = ""
         self.password = ""
-        self.auth = ""
-        self.sid = ""
         self.greeting = 'Welcome to Auto-Advisor!'
         self.greeting_window(self.greeting)
         self.login_count = 0
@@ -287,17 +248,19 @@ def create_file_path(fullname ,path, filename, file_type, array):
 #Gets user login credentials
 user = credentials()
 try:
-    auth, username, password = user.get_credentials()
+    username, password = user.get_credentials()
 #Exception Handling that closes program if tkinter box is closed prematurely
 except AttributeError:
     sys.exit("Program Terminated")
 
-if not bool(auth) or not bool(username) or not bool(password):
+if not bool(username) or not bool(password):
     sys.exit("Credentials not set")
 
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
-driver = webdriver.Edge()
+options = Options()
+options.add_argument("headless")
+driver = webdriver.Edge(options = options)
 driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 
@@ -310,17 +273,42 @@ pwd.send_keys(password)
 
 driver.find_element(By.XPATH, "//form").submit()
 
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
-#LANDING PAGE URL: https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu
-#use regular expressions since end of url can vary between users
+#Track if user is at landing page
 home_url = "https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu"
 url = driver.current_url.split("&")[0]
 print(url)
-#try:
-    #auth, username, password = user.invalid_creds()
-#except AttributeError:
-    #sys.exit("Program Terminated")
-#--------ADD LOGIC THAT CHECKS TO SEE IF USER IS AT LANDING PAGE------
+#if we are not at expected landing page, then user hasn't logged in yet
+while not home_url == url:
+    #set new login credentials
+    user.invalid_creds()
+    #store old credentials
+    username_old = username
+    password_old = password
+    #get new credentials
+    username, password = user.get_credentials()
+    #if old credentials match new credentials, terminate program
+    if username_old == username and password_old == password:
+        driver.quit()
+        sys.exit("Program Terminated: You have either manually closed the program, or entered the same invalid login credentials twice in a row.")
+    #attempt to log in again
+    uid = driver.find_element(By.ID, "UserID")
+    pwd = driver.find_element(By.ID, "PIN")
+
+    uid.send_keys(username)
+    pwd.send_keys(password)
+
+    driver.find_element(By.XPATH, "//form").submit()
+
+    url = driver.current_url.split("&")[0]
+#detect whether student or advisor is logged in by available links
+auth = ''
+#if this link is available, then advisor is logged in
+try:
+    driver.find_element(By.LINK_TEXT, "Faculty and Advisors")
+    auth = 'advisor'
+#if this link can't be found, then student is logged in
+except NoSuchElementException:
+    auth = 'student'
 
 #Used to hold student V-Numbers
 vnums = []
@@ -357,7 +345,6 @@ if auth == "advisor":
         #Additional crawling logic if we've reached the last vnum in list
         if vnum == vnums[-1]:
             driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-            #driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
             #gets student name
             name = driver.find_element(By.TAG_NAME, 'b')
             fullname.append(name.text.replace(" ", "").replace(".", ""))
@@ -383,20 +370,40 @@ if auth == "advisor":
         itr += 1
 
 if auth == "student":
-#--WebDriver tends to fail here, maybe try rebooting the WebDriver?--
+#--WebDriver tends to fail here when 'headless' Option is enabled, maybe try rebooting the WebDriver?--
 #------------WebDriver sometimes fail to grab name here--------------
     #grab person's name to use for file name
-    name = driver.find_elements(By.XPATH, "//td[@class='pldefault']")
-    for i in name:
-        if i.text[0:7] == "Welcome":
-            fullname.append(i.text.split(",")[1].replace(" ", "").replace(".", ""))
+    j = 0
+    while fullname == [] or fullname == ['']:
+        if j > 10:
+            sys.exit("Sytem Timeout: Failed to get name!")
+        name = driver.find_elements(By.XPATH, "//td[@class='pldefault']")
+        for i in name:
+            if i.text[0:7] == "Welcome":
+                fullname.append(i.text.split(",")[1].replace(" ", "").replace(".", ""))
+        if j > 0:
+            print("ERROR: Failed to get name! Retrying...")
+        j += 1
+    print("Name found: " + str(fullname))
 #------------WebDriver sometimes fail to grab name here--------------
 #--------NoSuchElement Error Happens Here, WebDriver failure?--------
     #crawl webpage to academic transcript
-    driver.find_element(By.LINK_TEXT, "Student").click()
+    found_link = False
+    i = 0
+    while not found_link:
+        if i > 10:
+            sys.exit("System Timeout: Could not find link for 'Student'!")
+        try:
+            driver.find_element(By.LINK_TEXT, "Student").click()
+            found_link = True
+        except NoSuchElementException:
+            pass
+        if i > 0:
+            print("ERROR: Could not find link 'Student'! Retrying...")
+        i += 1
     driver.find_element(By.LINK_TEXT, "Student Records").click()
 #--------NoSuchElement Error Happens Here, WebDriver failure?--------
-#--WebDriver tends to fail here, maybe try rebooting the WebDriver?--
+#--WebDriver tends to fail here when 'headless' Option is enabled, maybe try rebooting the WebDriver?--
 
     #crawl webpage to academic transcript
     driver.find_element(By.LINK_TEXT, "Academic Transcript").click()
