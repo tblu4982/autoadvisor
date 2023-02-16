@@ -1,9 +1,9 @@
 import advise
 
 def main(fullname):
-    for name in fullname:    
-        f1 = open("students\\" + name + "\courses.txt", "r")
-        f2 = open("students\\" + name + "\semesters.txt", "r")
+    for name in fullname:
+        f1 = open("students/" + name + "/courses.txt", "r")
+        f2 = open("students/" + name + "/semesters.txt", "r")
 
         print("Formatting Transcript for " + name + "...")
 
@@ -23,7 +23,7 @@ def main(fullname):
             #Create a list by splitting the a line. Each word is an item in list
             lineRec = line.split()
             courses.append(lineRec)
-        f1.close()  
+        f1.close()
 
         #Adjust courses to have course title as one element in list
         #For example ['CHEM', '152', 'General', 'Chemistry', 'II', 'S', '0.000'] becomes
@@ -78,7 +78,7 @@ def main(fullname):
                 c[2] = 'In progress'
 
         #remove failed courses
-        #course, name, grade, credits, semester    
+        #course, name, grade, credits, semester
         i = 0
         while i < len(courses):
             c = courses[i]
@@ -104,4 +104,3 @@ def main(fullname):
             i += 1
         #Pass name(string) and courses(list) to advise.py
         advise.main(courses, name)
-
