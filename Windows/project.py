@@ -7,25 +7,45 @@ from selenium.common.exceptions import NoSuchElementException
 import tkinter #GUI
 from tkinter import *
 from tkinter import messagebox
+from tkinter.filedialog import askopenfilename
 from datetime import datetime
 import os #used for read/write to files
 import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
+import time
 import preprocess
 
 #Class to hold user login info for session
 class credentials():
     #Opens a window and prompts user to select if they are student or advisor
-    def greeting_window (self, greeting):
+    def greeting_window (self, greeting, filename):
         portal = Tk()
         portal.geometry("200x70")
         portal.title("Auto Advisor")
         welcome = Label(portal, text = greeting)
-        login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
+        portal.after(1, lambda: portal.focus_force())
+        if len(filename) == 0 or not re.search('.xlsx$', filename):
+            config = Button(portal, text="Set Configuration File", command = lambda:[portal.destroy(), self.set_config()])
+            portal.bind('<Return>', lambda x:[portal.destroy(), self.set_config()])
+            welcome.pack(side = TOP)
+            config.pack(side = BOTTOM)
+            portal.mainloop()
+        else:
+            login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
+            config = Button(portal, text="Change Configuration File", command = lambda:[portal.destroy(), self.set_config()])
+            portal.bind('<Return>', lambda x:[portal.destroy(), self.click_login()])
+            config.pack(side = BOTTOM)
+            welcome.pack(side = TOP)
+            login.pack(side = BOTTOM)
+            portal.mainloop()
 
-        welcome.pack(side = TOP)
-        login.pack(side = BOTTOM)
-        portal.mainloop()
+    def set_config(self):
+        file_name = askopenfilename(title = 'Select Config File', filetypes = [('Excel Files','*.xlsx')])
+        self.filename = file_name
+        self.greeting_window(self.greeting, self.filename)               
+
+    def get_config(self):
+        return self.filename
 
     #method to grab student login info
     def click_login(self):
@@ -34,6 +54,7 @@ class credentials():
         login.geometry("200x90")
         login.title("Auto Advisor - Student")
         welcome = Label(login, text = "Enter your V-Number and PIN:")
+        login.after(1, lambda: login.focus_force())
         Label(login, text='V-Number').grid(row=1)
         Label(login, text='PIN').grid(row=2)
         uid = Entry(login)
@@ -41,6 +62,7 @@ class credentials():
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
         back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting)])
+        login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
         welcome.grid(row = 0, columnspan = 3)
         uid.grid(row = 1, column = 1, columnspan = 2)
         pwd.grid(row = 2, column = 1, columnspan = 2)
@@ -62,7 +84,9 @@ class credentials():
         warn.geometry("200x90")
         warn.title("Warning!")
         warning = Label(text = "Warning! You have failed to login 3 times now. Please ensure that you enter your information correctly.")
-        back = Button(warn, text='Return', command = lambda:[warn.destroy(), self.greeting_window(self.greeting)])
+        warn.after(1, lambda: warn.focus_force())
+        back = Button(warn, text='Return', command = lambda:[warn.destroy(), self.greeting_window(self.greeting, self.filename)])
+        warn.bind('<Return>', lambda x:[warn.destroy(), self.greeting_window(self.greeting, self.filename)])
         warning.pack(side = TOP)
         back.pack(side = TOP)
         warn.mainloop()
@@ -72,8 +96,10 @@ class credentials():
         terminate = Tk()
         terminate.geometry("200x90")
         terminate.title("Too Many Login Attempts")
+        terminate.after(1, lambda: terminate.focus_force())
         message = Label(text = "You have attempted too many failed login attempts. To prevent account lockout, please try again later.")
         end = Button(terminate, text='Exit', command = lambda:[terminate.destroy(), driver.quit(), sys.exit("Program Terminated: Too Many Login Attempts!")])
+        terminate.bind('<Return>', lambda x:[terminate.destroy(), driver.quit(), sys.exit("Program Terminated: Too Many Login Attempts!")])
         message.pack(side = TOP)
         end.pack(side = TOP)
         terminate.mainloop()
@@ -89,12 +115,38 @@ class credentials():
         else:
             self.login_timeout()
 
+    def get_vnums(self):
+        self.vnums = []
+        while True:
+            file_name = askopenfilename(title = 'Select vnums File', filetype = [('Text Files', '*.txt')])
+            if len(file_name) == 0:
+                    window = Tk()
+                    window.geometry("200x70")
+                    window.title("Invalid File!")
+                    window.after(1, lambda: window.focus_force())
+                    msg = Label(window, text="Warning: Need vnums text file!")
+                    ok_btn = Button(window, text="OK", command = window.destroy)
+                    cancel_btn = Button(window, text='Cancel', command = lambda:[window.destroy(), driver.quit(), sys.exit('Program Terminated')])
+                    ok_btn.bind('<Return>', ok_btn.destroy)
+                    msg.pack(side = TOP)
+                    ok_btn.pack(side = BOTTOM)
+                    cancel_btn.pack(side = BOTTOM)
+                    window.mainloop()
+            else:
+                self.filename = file_name
+                f1 = open(file_name)
+                for vnum in f1:
+                    self.vnums.append(vnum)
+                f1.close()
+                return self.vnums
+
     #instantiates class
     def __init__(self):
         self.username = ""
         self.password = ""
+        self.filename = ""
         self.greeting = 'Welcome to Auto-Advisor!'
-        self.greeting_window(self.greeting)
+        self.greeting_window(self.greeting, self.filename)
         self.login_count = 0
 
 #method to return appropriate value for term dropdown
@@ -256,6 +308,8 @@ except AttributeError:
 if not bool(username) or not bool(password):
     sys.exit("Credentials not set")
 
+config_file = user.get_config()
+
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
 options = Options()
@@ -303,24 +357,18 @@ while not home_url == url:
 #detect whether student or advisor is logged in by available links
 auth = ''
 #if this link is available, then advisor is logged in
+vnums = []
 try:
     driver.find_element(By.LINK_TEXT, "Faculty and Advisors")
     auth = 'advisor'
+    vnums = user.get_vnums()
 #if this link can't be found, then student is logged in
 except NoSuchElementException:
     auth = 'student'
-
-#Used to hold student V-Numbers
-vnums = []
-try:
-    f1 = open("vnums.txt")
-    for vnum in f1:
-        vnums.append(vnum)
-    f1.close()
-except FileNotFoundError:
-    pass
+    
 #Used to hold student names
 fullname = []
+error_vnums = []
 
 itr = 0
 if auth == "advisor":
@@ -346,14 +394,29 @@ if auth == "advisor":
         if vnum == vnums[-1]:
             driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
             #gets student name
-            name = driver.find_element(By.TAG_NAME, 'b')
-            fullname.append(name.text.replace(" ", "").replace(".", ""))
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+            try:
+                name = driver.find_element(By.TAG_NAME, 'b')
+                fullname.append(name.text.replace(" ", "").replace(".", ""))
+                driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+            except NoSuchElementException:
+                print("Error occurred at " + vnum)
+                error_vnums.append(vnum)
+                driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+                driver.find_element(By.LINK_TEXT, "Faculty Services").click()
+                continue
         #For all other vnums that are not last in list
         else:
-            name = driver.find_element(By.TAG_NAME, 'b')
-            fullname.append(name.text.replace(" ", "").replace(".", ""))
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+            try:
+                name = driver.find_element(By.TAG_NAME, 'b')
+                fullname.append(name.text.replace(" ", "").replace(".", ""))
+                driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+            except NoSuchElementException:
+                print("Error occurred at " + vnum)
+                error_vnums.append(vnum)
+                driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+                driver.find_element(By.LINK_TEXT, "Faculty Services").click()
+                continue
+            
 
         #crawl webpage to academic transcript
         driver.find_element(By.LINK_TEXT, "Academic Transcript").click()
@@ -375,7 +438,8 @@ if auth == "student":
     #grab person's name to use for file name
     j = 0
     while fullname == [] or fullname == ['']:
-        if j > 10:
+        if j > 20:
+            driver.quit()
             sys.exit("Sytem Timeout: Failed to get name!")
         name = driver.find_elements(By.XPATH, "//td[@class='pldefault']")
         for i in name:
@@ -383,6 +447,7 @@ if auth == "student":
                 fullname.append(i.text.split(",")[1].replace(" ", "").replace(".", ""))
         if j > 0:
             print("ERROR: Failed to get name! Retrying...")
+            time.sleep(0.1)
         j += 1
     print("Name found: " + str(fullname))
 #------------WebDriver sometimes fail to grab name here--------------
@@ -391,7 +456,8 @@ if auth == "student":
     found_link = False
     i = 0
     while not found_link:
-        if i > 10:
+        if i > 20:
+            driver.quit()
             sys.exit("System Timeout: Could not find link for 'Student'!")
         try:
             driver.find_element(By.LINK_TEXT, "Student").click()
@@ -400,6 +466,7 @@ if auth == "student":
             pass
         if i > 0:
             print("ERROR: Could not find link 'Student'! Retrying...")
+            time.sleep(0.1)
         i += 1
     driver.find_element(By.LINK_TEXT, "Student Records").click()
 #--------NoSuchElement Error Happens Here, WebDriver failure?--------
@@ -417,4 +484,9 @@ if auth == "student":
 
 #Web driver is no longer needed
 driver.quit()
-preprocess.main(fullname)
+preprocess.main(fullname, config_file)
+print('Program complete! Check files for advisory report(s).')
+if len(error_vnums) > 0:
+    print('Could not generate transcripts for the following V-Numbers:')
+    for vnum in error_vnums:
+        print(vnum)

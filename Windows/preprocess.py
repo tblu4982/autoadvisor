@@ -1,6 +1,6 @@
 import advise
 
-def main(fullname):
+def main(fullname, config_file):
     for name in fullname:    
         f1 = open("students\\" + name + "\courses.txt", "r")
         f2 = open("students\\" + name + "\semesters.txt", "r")
@@ -102,6 +102,24 @@ def main(fullname):
                 courses.pop(i)
                 i -= 1
             i += 1
-        #Pass name(string) and courses(list) to advise.py
-        advise.main(courses, name)
 
+        #remove duplicate courses
+        i = 0
+        while i < len(courses):
+            j = i + 1
+            c1 = courses[i][0]
+            abbr = c1[:-4]
+            if not abbr == 'BIOL':
+                if not abbr == 'PHYS':
+                    if not abbr == 'CHEM':
+                        while j < len(courses):
+                            c2 = courses[j][0]
+                            if c1 == c2:
+                                courses.pop(i)
+                                break
+                            j += 1
+            i += 1
+                    
+        #Pass name(string) and courses(list) to advise.py
+        #advise.main(courses, name)
+        advise.main(courses, name, config_file)
