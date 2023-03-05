@@ -305,6 +305,23 @@ def structure_dict_elems(semester):
         if len(semester[key]) > 6:
             semester[key].pop()
 
+def find_fill_type(is_complete, in_progress, is_open):
+    #for all taken or in progress courses, mark green and yellow respectively
+    if is_complete:
+        #for courses in progress, mark yellow
+        if in_progress:
+            return yellowFill
+        #for completed courses, mark green
+        else:
+            return greenFill
+    #For courses the student is eligible for, mark blue
+    elif is_open:
+        return blueFill
+    #For all other courses, mark red
+    else:
+        return redFill
+    
+
 #Merges index columns and styles the cells
 def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
     #finds index columns and merges them
@@ -333,140 +350,40 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
             j += 1
         j = 0
         for cell in row:
-            #for all taken or in progress courses, mark green and yellow respectively
-            if is_complete:
-                #for courses in progress, mark yellow
-                if in_progress:
-                    #if first index, then we are at the top border cell
-                    if i == 0:
-                        #if first index, we are at the left border cell
-                        if j == 0:
-                            cells[i][j].border = top_left
-                            cells[i][j].fill = yellowFill
-                        #if last index, then we are at the right border cell
-                        elif j+1 == row_size:
-                            cells[i][j].border = top_right
-                            cells[i][j].fill = yellowFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = top
-                            cells[i][j].fill = yellowFill
-                    #if last index, then we are at the bottom border cell
-                    elif i+1 == col_size:
-                        if j == 0:
-                            cells[i][j].border = bottom_left
-                            cells[i][j].fill = yellowFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = bottom_right
-                            cells[i][j].fill = yellowFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = bottom
-                            cells[i][j].fill = yellowFill
-                    elif j == 0:
-                        cells[i][j].border = left
-                        cells[i][j].fill = yellowFill
-                    elif j+1 == row_size:
-                        cells[i][j].border = right
-                        cells[i][j].fill = yellowFill
-                    #for inner cells, make border thin
-                    elif not row[j] == row[-1]:
-                        cells[i][j].border = other
-                        cells[i][j].fill = yellowFill
-                #for completed courses, mark green
-                else:
-                    if i == 0:
-                        if j == 0:
-                            cells[i][j].border = top_left
-                            cells[i][j].fill = greenFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = top_right
-                            cells[i][j].fill = greenFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = top
-                            cells[i][j].fill = greenFill
-                    elif i+1 == col_size:
-                        if j == 0:
-                            cells[i][j].border = bottom_left
-                            cells[i][j].fill = greenFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = bottom_right
-                            cells[i][j].fill = greenFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = bottom
-                            cells[i][j].fill = greenFill
-                    elif j == 0:
-                        cells[i][j].border = left
-                        cells[i][j].fill = greenFill
-                    elif j+1 == row_size:
-                        cells[i][j].border = right
-                        cells[i][j].fill = greenFill
-                    elif not row[j] == row[-1]:
-                        cells[i][j].border = other
-                        cells[i][j].fill = greenFill
-            #for all courses that are not taken, mark blue if eligible, or red if ineligible
-            else:
-                #For courses the student is eligible for, mark blue
-                if is_open:
-                    if i == 0:
-                        if j == 0:
-                            cells[i][j].border = top_left
-                            cells[i][j].fill = blueFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = top_right
-                            cells[i][j].fill = blueFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = top
-                            cells[i][j].fill = blueFill
-                    elif i+1 == col_size:
-                        if j == 0:
-                            cells[i][j].border = bottom_left
-                            cells[i][j].fill = blueFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = bottom_right
-                            cells[i][j].fill = blueFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = bottom
-                            cells[i][j].fill = blueFill
-                    elif j == 0:
-                        cells[i][j].border = left
-                        cells[i][j].fill = blueFill
-                    elif j+1 == row_size:
-                        cells[i][j].border = right
-                        cells[i][j].fill = blueFill
-                    elif not row[j] == row[-1]:
-                        cells[i][j].border = other
-                        cells[i][j].fill = blueFill
-                #For all other courses, mark red
-                else:
-                    if i == 0:
-                        if j == 0:
-                            cells[i][j].border = top_left
-                            cells[i][j].fill = redFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = top_right
-                            cells[i][j].fill = redFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = top
-                            cells[i][j].fill = redFill
-                    elif i+1 == col_size:
-                        if j == 0:
-                            cells[i][j].border = bottom_left
-                            cells[i][j].fill = redFill
-                        elif j+1 == row_size:
-                            cells[i][j].border = bottom_right
-                            cells[i][j].fill = redFill
-                        elif not row[j] == row[-1]:
-                            cells[i][j].border = bottom
-                            cells[i][j].fill = redFill
-                    elif j == 0:
-                        cells[i][j].border = left
-                        cells[i][j].fill = redFill
-                    elif j+1 == row_size:
-                        cells[i][j].border = right
-                        cells[i][j].fill = redFill
-                    elif not row[j] == row[-1]:
-                        cells[i][j].border = other
-                        cells[i][j].fill = redFill
-
+            #if first index, then we are at the top border cell
+            if i == 0:
+                #if first index, we are at the left border cell
+                if j == 0:
+                    cells[i][j].border = top_left
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                #if last index, then we are at the right border cell
+                elif j+1 == row_size:
+                    cells[i][j].border = top_right
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                elif not row[j] == row[-1]:
+                    cells[i][j].border = top
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+            #if last index, then we are at the bottom border cell
+            elif i+1 == col_size:
+                if j == 0:
+                    cells[i][j].border = bottom_left
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                elif j+1 == row_size:
+                    cells[i][j].border = bottom_right
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                elif not row[j] == row[-1]:
+                    cells[i][j].border = bottom
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+            elif j == 0:
+                cells[i][j].border = left
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+            elif j+1 == row_size:
+                cells[i][j].border = right
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+            #for inner cells, make border thin
+            elif not row[j] == row[-1]:
+                cells[i][j].border = other
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
             j += 1
             if j == len(row):
                 break
