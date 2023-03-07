@@ -61,7 +61,7 @@ class credentials():
         pwd = Entry(login, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
-        back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting)])
+        back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting, self.filename)])
         login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
         welcome.grid(row = 0, columnspan = 3)
         uid.grid(row = 1, column = 1, columnspan = 2)
@@ -173,7 +173,7 @@ def get_timecode():
     #return year and month to use as value for dropdown selector
     return year + month
 
-def build_path(path):
+def build_path(path, fullname):
     #create folder using student name
     #check if name has been established
     if bool(fullname):
@@ -425,8 +425,8 @@ if auth == "advisor":
         type_id = Select(driver.find_element(By.ID, "tprt_id"))
 
         #set path for student using their name
-        path = "students/" + fullname[itr]
-        build_path(path)
+        path = "students/" + fullname[itr] + '/' + config_file.split('/')[-1].split('.')[0]
+        build_path(path, fullname[itr])
         build_files(path, driver, fullname[itr])
 
         driver.find_element(By.LINK_TEXT, "Faculty Services").click()
@@ -478,8 +478,8 @@ if auth == "student":
     levl_id = Select(driver.find_element(By.ID, "levl_id"))
     type_id = Select(driver.find_element(By.ID, "type_id"))
 
-    path = "students/" + fullname[0]
-    build_path(path)
+    path = "students/" + fullname[0] + '/' + config_file.split('/')[-1].split('.')[0]
+    build_path(path, fullname[0])
     build_files(path, driver, fullname[0])
 
 #Web driver is no longer needed

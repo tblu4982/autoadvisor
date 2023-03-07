@@ -2,8 +2,8 @@ import advise
 
 def main(fullname, config_file):
     for name in fullname:    
-        f1 = open("students\\" + name + "\courses.txt", "r")
-        f2 = open("students\\" + name + "\semesters.txt", "r")
+        f1 = open("students\\" + name + "\\" + config_file.split('/')[-1].split('.')[0] + "\courses.txt", "r")
+        f2 = open("students\\" + name + "\\" + config_file.split('/')[-1].split('.')[0] + "\semesters.txt", "r")
 
         print("Formatting Transcript for " + name + "...")
 

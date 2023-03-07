@@ -9,6 +9,7 @@ from openpyxl.styles import PatternFill #used for excell cell background colors
 from openpyxl.styles.colors import Color
 from openpyxl.styles import Alignment
 import open_course_struct
+import sys
 
 #global variables for border styles
 top = Border(left = Side(style = 'thin'),
@@ -191,13 +192,20 @@ def eligibility_check(key, courses, total_credits, core_courses):
         elig_courses = courses_struct[key][7].split(',')
         e_courses = []
         ineligible = []
+        #check if any of the courses that can satisfy elective
+        #are already on transcript
         for i in range(len(valid_courses)):
             is_valid = True
             valid_courses[i] = valid_courses[i].strip()
+            #special case: science lectures and labs on transcript share the
+            #same course ID, differentiate between them to avoid the issue
+            #lectures being counted as labs and vice versa
             for course in courses:
                 if re.search('^SCI', key) and re.search('^SCI', course):
                     if not re.search('LAB$', key):
                         if not re.search('LAB$', course):
+                            #If any of the courses that can satisfy elective
+                            #are found, do not include it in recommendations
                             if valid_courses[i] == courses[course][0]:
                                 is_valid = False
                     else:
@@ -211,32 +219,46 @@ def eligibility_check(key, courses, total_credits, core_courses):
                     #scan through prerequisites
                     for course in elig_courses:
                         #assign the target course and the required prereq
-                        e_course, prereq = course.strip().split(':')
+                        try:
+                            e_course, e_prereqs = course.strip().split(':')
+                        except ValueError:
+                            sys.exit('Please check configuration file! Eligible' \
+                                     + ' course prerequisites for row ' + key + ' is' \
+                                     + ' not properly structured! (Error occurred after ' \
+                                     + e_course + ')')
                         e_course = e_course[1:]
                         #ISSUE WITH INCORRECT COURSES BEING RECOMMENDED
                         #MAY BE HERE
-                        prereq = prereq.strip()[:-1]
+                        e_prereqs = e_prereqs.split('&')
+                        j = 0
+                        for e_prereq in e_prereqs:
+                            e_prereqs[j] = e_prereq.strip()
+                            if re.search('>$', e_prereqs[j]):
+                                e_prereqs[j] = e_prereqs[j][:-1]
+                            j += 1
                         #if target course matches current index of valid courses,
                         #search to see if prereq is satisfied
                         if valid_courses[i] == e_course:
-                            try:
-                                if core_courses[prereq][2] == '':
-                                    is_valid = False
-                                    if not prereq in ineligible:
-                                        ineligible.append(prereq)
-                            except KeyError:
+                            for e_prereq in e_prereqs:
                                 try:
-                                    is_found = False
-                                    for elec_course in courses:
-                                        if elec_course[0] == prereq:
-                                            if not elec_course[2] == '':
-                                                is_found = True
-                                    if not is_found:
+                                    if core_courses[e_prereq][2] == '':
                                         is_valid = False
-                                        if not prereq in ineligible:
-                                            ineligible.append(prereq)
-                                except IndexError:
-                                    break
+                                        if not e_prereq in ineligible:
+                                            ineligible.append(e_prereq)
+                                except KeyError:
+                                    try:
+                                        is_found = False
+                                        for elec_course in courses:
+                                            if courses[elec_course][0] == e_prereq:
+                                                if not courses[elec_course][2] == '':
+                                                    is_found = True
+                                                    break
+                                        if not is_found:
+                                            is_valid = False
+                                            if not e_prereq in ineligible:
+                                                ineligible.append(e_prereq)
+                                    except IndexError:
+                                        break
             if is_valid:
                 e_courses.append(valid_courses[i])
 
@@ -305,6 +327,7 @@ def structure_dict_elems(semester):
         if len(semester[key]) > 6:
             semester[key].pop()
 
+#determines which color the cells will be colored
 def find_fill_type(is_complete, in_progress, is_open):
     #for all taken or in progress courses, mark green and yellow respectively
     if is_complete:
@@ -355,6 +378,7 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
                 #if first index, we are at the left border cell
                 if j == 0:
                     cells[i][j].border = top_left
+                    #find which color to make the cell
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
                 #if last index, then we are at the right border cell
                 elif j+1 == row_size:
@@ -686,7 +710,7 @@ def main(courses, name, config_file):
                       index,
                       columns = ['ID', 'Name', 'Grade', 'Credits', 'Semester', 'Notes'])
     #print to excel file
-    path = 'students\\' + name + '\\' + name + '_planning_sheet.xlsx'
+    path = 'students\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet.xlsx'
     df.to_excel(path, sheet_name = 'Transcript')
     #modify created excel file
     wb = load_workbook(filename = path)
@@ -772,48 +796,49 @@ def main(courses, name, config_file):
 
     format_cells(wb, ws, start, end, upper_range, lower_range, col_size)
 
-    start = end + 1
-    end += len(unused)
+    if len(unused) > 0:
+        start = end + 1
+        end += len(unused)
 
-    #unused courses do not need to be color coded, also have a smaller range
-    upper_range = 'B' + str(start)
-    lower_range = 'F' + str(end)
+        #unused courses do not need to be color coded, also have a smaller range
+        upper_range = 'B' + str(start)
+        lower_range = 'F' + str(end)
 
-    ws.merge_cells(start_row = start, start_column = 1, end_row = end, end_column = 1)
-    cells = list(ws[upper_range:lower_range])
-    i = 0
-    for row in cells:
-        j = 0
-        row_size = len(row)
-        #find all courses that have not been taken yet
-        for cell in row:
-            #if first index, then we are at the top border cell
-            if i == 0:
-                #if first index, we are at the left border cell
-                if j == 0:
-                    cells[i][j].border = top_left
-                #if last index, then we are at the right border cell
+        ws.merge_cells(start_row = start, start_column = 1, end_row = end, end_column = 1)
+        cells = list(ws[upper_range:lower_range])
+        i = 0
+        for row in cells:
+            j = 0
+            row_size = len(row)
+            #find all courses that have not been taken yet
+            for cell in row:
+                #if first index, then we are at the top border cell
+                if i == 0:
+                    #if first index, we are at the left border cell
+                    if j == 0:
+                        cells[i][j].border = top_left
+                    #if last index, then we are at the right border cell
+                    elif j+1 == row_size:
+                        cells[i][j].border = top_right
+                    else:
+                        cells[i][j].border = top
+                #if last index, then we are at the bottom border cell
+                elif i+1 == col_size:
+                    if j == 0:
+                        cells[i][j].border = bottom_left
+                    elif j+1 == row_size:
+                        cells[i][j].border = bottom_right
+                    else:
+                        cells[i][j].border = bottom
+                elif j == 0:
+                    cells[i][j].border = left
                 elif j+1 == row_size:
-                    cells[i][j].border = top_right
+                    cells[i][j].border = right
+                #for inner cells, make border thin
                 else:
-                    cells[i][j].border = top
-            #if last index, then we are at the bottom border cell
-            elif i+1 == col_size:
-                if j == 0:
-                    cells[i][j].border = bottom_left
-                elif j+1 == row_size:
-                    cells[i][j].border = bottom_right
-                else:
-                    cells[i][j].border = bottom
-            elif j == 0:
-                cells[i][j].border = left
-            elif j+1 == row_size:
-                cells[i][j].border = right
-            #for inner cells, make border thin
-            else:
-                cells[i][j].border = other
-            j += 1
-        i += 1
+                    cells[i][j].border = other
+                j += 1
+            i += 1
         
     #save changes to excel file
     wb.save(path)
