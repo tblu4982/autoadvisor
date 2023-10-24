@@ -1,4 +1,6 @@
-Store 'project', 'preprocess', and 'advise' in the same file directory.
+Read the User Guide for installation instructions
+
+Store ALL python files in the same file directory.
 To run program, run project.py.
 
 This program requires the following resources to run:
