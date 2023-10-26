@@ -53,6 +53,7 @@ redFill = PatternFill('solid', fgColor = 'FF0000')
 greenFill = PatternFill('solid', fgColor = '00FF00')
 yellowFill = PatternFill('solid', fgColor = 'FFFF00')
 blueFill = PatternFill('solid', fgColor = '00BFFF')
+orangeFill = PatternFill('solid', fgColor = 'FCB900')
 
 #at least 8 csci courses, 60 credits, and csci 287 before 400-level csci courses
 #method to check if a course has a passing grade where a passing grade is 'C'
@@ -123,7 +124,10 @@ def subs_check(courses, course, unused):
 #checks if student is eleigible for course
 def eligibility_check(key, courses, total_credits, core_courses):
     course_type = courses_struct[key][0]
-    courses[key][5] = ''
+    try:
+        courses[key][5] = ''
+    except IndexError:
+        courses[key].append("")
     #get prerequisites and put them in an array
     prereqs = courses_struct[key][3].split(',')
     min_credits = courses_struct[key][2]
@@ -141,9 +145,12 @@ def eligibility_check(key, courses, total_credits, core_courses):
             prereqs[i] = prereqs[i].strip()
             if not re.search('\*', prereqs[i]):
                 try:
-                    if not bool(courses[prereqs[i]][2]):
+                    if not bool(core_courses[prereqs[i]][2]):
                         is_satisfied = False
-                        elig_code = 1
+                        if courses[key][2] == 'In progress':
+                            elig_code = 3
+                        else:
+                            elig_code = 1
                     else:
                         pop_prereqs.append(i)
                 except KeyError:
@@ -185,7 +192,9 @@ def eligibility_check(key, courses, total_credits, core_courses):
             valid_courses = courses_struct[key][6].split(',')
             #list of prerequisites for electives that require them
             elig_courses = courses_struct[key][7].split(',')
+            #holds all courses whose prereqs are satisfied
             e_courses = []
+            #holds all courses whose prereqs are not satisfied
             ineligible = []
             #check if any of the courses that can satisfy elective
             #are already on transcript
@@ -267,12 +276,15 @@ def eligibility_check(key, courses, total_credits, core_courses):
                     
             #if student not eligible for elective, print required courses
             if len(e_courses) == 0:
+                if courses[key][2] == "In progress":
+                    courses[key][5] += 'Drop course! '
                 courses[key][5] += 'Need '
                 for c in ineligible:
                     courses[key][5] += c + ', '
                 return
             #if student is eligible, print eligible courses that can satisfy it
-            else:
+            #omit courses in progress
+            elif not courses[key][2] == 'In progress':
                 courses[key][5] += 'Eligible courses: '
                 for c in e_courses:
                     if len(c) < 8:
@@ -282,7 +294,7 @@ def eligibility_check(key, courses, total_credits, core_courses):
                 return
 
     #if course is satisfied, print eligibility
-    if is_satisfied:
+    if is_satisfied and elig_code == 0 and not courses[key][2] == 'In progress':
         courses[key][5] = 'Eligible'
     #if we reach this, there are courses that need to be taken first
     if elig_code == 1:
@@ -298,6 +310,11 @@ def eligibility_check(key, courses, total_credits, core_courses):
                 courses[key][5] += str(c_count - count) + ' ' + course + ' courses, '
             else:
                 courses[key][5] += prereq + ', '
+    #if we reach this, student is enrolled in a course that they lack prereqs for
+    if elig_code == 3:
+        courses[key][5] += 'Drop course! Need '
+        for prereq in prereqs:
+            courses[key][5] += prereq + ', '
 
 #Finds common courses between dictionaries
 def find_courses(semester, core_courses, electives):
@@ -368,12 +385,15 @@ def map_elec(course):
         return 'MATH'
 
 #determines which color the cells will be colored
-def find_fill_type(is_complete, in_progress, is_open):
+def find_fill_type(is_complete, in_progress, is_open, is_valid):
     #for all taken or in progress courses, mark green and yellow respectively
     if is_complete:
         #for courses in progress, mark yellow
         if in_progress:
-            return yellowFill
+            if is_valid:
+                return yellowFill
+            else:
+                return orangeFill
         #for completed courses, mark green
         else:
             return greenFill
@@ -398,6 +418,7 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
         is_complete = True
         in_progress = False
         is_open = False
+        is_valid = True
         #find all courses that either have not been taken yet or are in progress
         for cell in row:
             if cell.value == None:
@@ -408,6 +429,8 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
             try:
                 if re.search('Eligible', cell.value):
                     is_open = True
+                if re.search('Drop', cell.value):
+                    is_valid = False
             except TypeError:
                 continue
             j += 1
@@ -419,35 +442,35 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
                 if j == 0:
                     cells[i][j].border = top_left
                     #find which color to make the cell
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 #if last index, then we are at the right border cell
                 elif j+1 == row_size:
                     cells[i][j].border = top_right
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif not row[j] == row[-1]:
                     cells[i][j].border = top
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             #if last index, then we are at the bottom border cell
             elif i+1 == col_size:
                 if j == 0:
                     cells[i][j].border = bottom_left
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif j+1 == row_size:
                     cells[i][j].border = bottom_right
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif not row[j] == row[-1]:
                     cells[i][j].border = bottom
-                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                    cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             elif j == 0:
                 cells[i][j].border = left
-                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             elif j+1 == row_size:
                 cells[i][j].border = right
-                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             #for inner cells, make border thin
             elif not row[j] == row[-1]:
                 cells[i][j].border = other
-                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open)
+                cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             j += 1
             if j == len(row):
                 break
@@ -671,12 +694,14 @@ def main(courses, name, config_file, fullname, vnum):
 
     #add a note to core courses that the student is eligible to take
     for course in core_course_stack:
-        if not bool(core_course_stack[course][2]):
+        #Student may be enrolled in courses they aren't eligible for, check for those as well
+        if not bool(core_course_stack[course][2]) or core_course_stack[course][2] == "In progress":
             eligibility_check(course, core_course_stack, total_credits, core_course_stack)
+            
 
     #add a note to electives that the student is eligible to take
     for course in elec_stack:
-        if not bool(elec_stack[course][2]):
+        if not bool(elec_stack[course][2]) or elec_stack[course][2] == "In progress":
             eligibility_check(course, elec_stack, total_credits, core_course_stack)
 
     #Set semester structures from configuration file
