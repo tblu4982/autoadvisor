@@ -1,7 +1,7 @@
 import advise
 import re
 
-def main(fullname, config_file, vnums, names):
+def main(fullname, config_file, vnums, names, sem_flag):
     counter = 0
     for name in fullname:
         name = name.strip()
@@ -9,7 +9,6 @@ def main(fullname, config_file, vnums, names):
         f2 = open("students/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/semesters.txt", "r")
 
         print("Formatting Transcript for " + name + "...")
-        print(vnums[counter])
 
         #Read semesters from file and insert it into list semesters
         semesters = []
@@ -174,5 +173,5 @@ def main(fullname, config_file, vnums, names):
                     
         #Pass name(string) and courses(list) to advise.py
         #advise.main(courses, name)
-        advise.main(courses, name, config_file, names[counter], vnums[counter])
+        advise.main(courses, name, config_file, names[counter], vnums[counter], sem_flag)
         counter += 1

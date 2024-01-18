@@ -19,27 +19,31 @@ class credentials():
     #Opens a window and prompts user to select config file and to log in
     def greeting_window (self, greeting, filename):
         portal = Tk()
-        portal.geometry("200x90")
+        portal.geometry("180x60")
         portal.title("Auto Advisor: Home")
         is_anon = BooleanVar(portal, value = self.anonymous)
+        is_current_sem = BooleanVar(portal, value = self.current_sem)
         welcome = Label(portal, text = greeting)
         portal.after(1, lambda: portal.focus_force())
         #if no configuration file is selected, prompt user for config file
         if len(filename) == 0 or not re.search('.xlsx$', filename):
             config = Button(portal, text="Set Configuration File", command = lambda:[portal.destroy(), self.set_config()])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.set_config()])
-            welcome.pack(side = TOP)
-            config.pack(side = BOTTOM)
+            welcome.pack(side = TOP, expand = True)
+            config.pack(side = BOTTOM, expand = True)
         #if a config file has be selected, prompt user to log in
         else:
+            portal.geometry("260x120")
             login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
             config = Button(portal, text="Change Configuration File", command = lambda:[portal.destroy(), self.set_config()])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.click_login()])
-            config.pack(side = BOTTOM)
-            welcome.pack(side = TOP)
-            login.pack(side = BOTTOM)
-        anon_btn = Checkbutton(portal, text="Anonymous Mode", variable = is_anon, command = lambda:[self.toggle_anonymous(is_anon.get())])
-        anon_btn.pack(side = TOP)
+            anon_btn = Checkbutton(portal, text="Hide Student Names", variable = is_anon, command = lambda:[self.toggle_anonymous(is_anon.get())])
+            sem_btn = Checkbutton(portal, text="Toggle on if planning for Current Semester", variable = is_current_sem, command = lambda:[self.toggle_sem(is_current_sem.get())])
+            config.pack(side = BOTTOM, expand = True)
+            welcome.pack(side = TOP, expand = True)
+            login.pack(side = BOTTOM, expand = True)
+            anon_btn.pack(side = TOP, expand = True)
+            sem_btn.pack(side = TOP, expand = True)
         portal.mainloop()
 
     def toggle_anonymous (self, is_anon):
@@ -50,6 +54,15 @@ class credentials():
 
     def is_anonymous(self):
         return self.anonymous
+
+    def toggle_sem (self, is_current_sem):
+        if is_current_sem:
+            self.current_sem = True
+        else:
+            self.current_sem = False
+
+    def get_sem_flag(self):
+        return self.current_sem
 
     #function that grabs file path of config file
     def set_config(self):
@@ -65,23 +78,23 @@ class credentials():
     def click_login(self):
         #opens a window to grab student login info
         login = Tk()
-        login.geometry("200x90")
+        login.geometry("200x103")
         login.title("Auto Advisor: Login")
         welcome = Label(login, text = "Enter your V-Number and PIN:")
         login.after(1, lambda: login.focus_force())
-        Label(login, text='V-Number').grid(row=1)
-        Label(login, text='PIN').grid(row=2)
+        Label(login, text='V-Number').grid(row=1, pady = 1)
+        Label(login, text='PIN').grid(row=2, pady = 1)
         uid = Entry(login)
         pwd = Entry(login, show ="*")
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
         back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting, self.filename)])
         login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
-        welcome.grid(row = 0, columnspan = 3)
-        uid.grid(row = 1, column = 1, columnspan = 2)
-        pwd.grid(row = 2, column = 1, columnspan = 2)
-        submit.grid(row = 3, column = 1)
-        back.grid(row = 3, column = 2)
+        welcome.grid(row = 0, columnspan = 3, padx = 10,pady = 2)
+        uid.grid(row = 1, column = 1, columnspan = 3)
+        pwd.grid(row = 2, column = 1, columnspan = 3)
+        submit.grid(row = 3, column = 0, columnspan = 2, ipadx = 20, pady = 3)
+        back.grid(row = 3, column = 2, columnspan = 2, ipadx = 20, pady = 3)
         
     #sets user's login info
     def set_credentials(self, uid, pwd):
@@ -170,6 +183,7 @@ class credentials():
                     vnums.append(vnum)
                 f1.close()
                 #return list of v-numbers
+                print(vnums)
                 return vnums
 
     #UNTESTED CODE!
@@ -194,6 +208,7 @@ class credentials():
         self.greeting = 'Welcome to Auto-Advisor!'
         self.login_count = 0
         self.anonymous = False
+        self.current_sem = False
         self.greeting_window(self.greeting, self.filename)
 
 #method to return appropriate value for term dropdown
@@ -372,7 +387,6 @@ except SessionNotCreatedException:
 #Track if user is at landing page
 home_url = "https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu"
 url = driver.current_url.split("&")[0]
-print(url)
 
 vnums = []
 is_logged = False
@@ -427,6 +441,7 @@ names = []
 error_vnums = []
 
 is_anonymous = user.is_anonymous()
+sem_flag = user.get_sem_flag()
 
 itr = 0
 #crawl through banner until we get to student id
@@ -508,9 +523,9 @@ while index < len(vnums):
 driver.quit()
 
 if is_anonymous:
-    preprocess.main(vnums, config_file, vnums, names)
+    preprocess.main(vnums, config_file, vnums, names, sem_flag)
 else:
-    preprocess.main(fullname, config_file, vnums, names)
+    preprocess.main(fullname, config_file, vnums, names, sem_flag)
 print('Program complete! Check files for advisory report(s).')
 if len(error_vnums) > 0:
     print('Could not generate transcripts for the following V-Numbers:')
