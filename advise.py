@@ -114,13 +114,15 @@ def subs_check(courses, course, unused):
                     courses[course] = unused[key]
                     courses[course][0] = c_id
                     courses[course].append(unused[key][0] + ' sub')
+                    print(c_id)
+                    print(unused[key][0])
                     pop_key = key
     #remove sub from unused
     if found_sub:
         unused.pop(pop_key)
 
 #checks if student is eleigible for course
-def eligibility_check(key, courses, total_credits, core_courses, sem_flag):
+def eligibility_check(key, courses, total_credits, core_courses):
     course_type = courses_struct[key][0]
     try:
         courses[key][5] = ''
@@ -143,25 +145,14 @@ def eligibility_check(key, courses, total_credits, core_courses, sem_flag):
             prereqs[i] = prereqs[i].strip()
             if not re.search('\*', prereqs[i]):
                 try:
-                    #Check prerequisite by seeing if nothing is there
                     if not bool(core_courses[prereqs[i]][2]):
                         is_satisfied = False
-                        #If prereq hasn't been taken but target course is in progress, notify user
                         if courses[key][2] == 'In progress':
                             elig_code = 3
                         else:
                             elig_code = 1
-                    #if prereq has been taken, pop it from list
                     else:
-                        #if enrolling for courses in current semester, ensure prereq
-                        #is not in progress
-                        if sem_flag and core_courses[prereqs[i]][2] == 'In progress':
-                            if courses[key][2] == 'In progress':
-                                elig_code = 3
-                            else:
-                                elig_code = 1
-                        else:
-                            pop_prereqs.append(i)
+                        pop_prereqs.append(i)
                 except KeyError:
                     break
             #for prereqs in which the student has to take 'x' number of courses
@@ -330,22 +321,14 @@ def find_courses(semester, core_courses, electives):
     sem_keys = semester.keys()
     core_keys = core_courses.keys()
     elec_keys = electives.keys()
-    common_keys = []
-    for key1 in sem_keys:
-        for key2 in core_keys:
-            if key1 == key2:
-                common_keys.append(key1)
-                
-    for key1 in sem_keys:
-        for key2 in elec_keys:
-            if key1 == key2:
-                common_keys.append(key1)
-    #if common keys are found, assign course to appropriate semester            
-    for key in common_keys:
-        try:
+
+    for key in sem_keys:
+        if key in core_keys:
             if bool(core_courses[key]):
                 semester[key] = core_courses[key]
-        except KeyError:
+                
+    for key in sem_keys:
+        if key in elec_keys:
             if bool(electives[key]):
                 semester[key] = electives[key]
 
@@ -485,8 +468,9 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
                 break
         i += 1
 
-def main(courses, name, config_file, fullname, vnum, sem_flag):
+def main(courses, name, config_file, fullname, vnum, advisor):
     print("Generating Advisory Report for " + name + "...")
+    print(vnum)
 
     #set core courses, electives, and courses_struct from configuration file
     global courses_struct
@@ -704,13 +688,13 @@ def main(courses, name, config_file, fullname, vnum, sem_flag):
     for course in core_course_stack:
         #Student may be enrolled in courses they aren't eligible for, check for those as well
         if not bool(core_course_stack[course][2]) or core_course_stack[course][2] == "In progress":
-            eligibility_check(course, core_course_stack, total_credits, core_course_stack, sem_flag)
+            eligibility_check(course, core_course_stack, total_credits, core_course_stack)
             
 
     #add a note to electives that the student is eligible to take
     for course in elec_stack:
         if not bool(elec_stack[course][2]) or elec_stack[course][2] == "In progress":
-            eligibility_check(course, elec_stack, total_credits, core_course_stack, sem_flag)
+            eligibility_check(course, elec_stack, total_credits, core_course_stack)
 
     #Set semester structures from configuration file
     frs1, frs2, sos1, sos2, jrs1, jrs2, srs1, srs2 = configuration.get_sems()
@@ -787,10 +771,7 @@ def main(courses, name, config_file, fullname, vnum, sem_flag):
         courses.append(course)
 
     #set excel file path
-    if sem_flag:
-        path = 'students\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_curr_sem).xlsx'
-    else:
-        path = 'students\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_next_sem).xlsx'
+    path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student).xlsx'
 
     #structure index and coursesd into a dataframe
     df = pd.DataFrame(courses,
@@ -811,10 +792,10 @@ def main(courses, name, config_file, fullname, vnum, sem_flag):
     ws.column_dimensions['C'].width = 30
     ws.column_dimensions['D'].width = 10
     ws.column_dimensions['E'].width = 7
-    ws.column_dimensions['F'].width = 9
+    ws.column_dimensions['F'].width = 12
     #center text for certain columns
     for row in ws:
-        cells = [row[0], row[3], row[4], row[5]]
+        cells = [row[0], row[3], row[5]]
         for cell in cells:
             if cell == cells[0]:
                 cell.alignment = Alignment(wrap_text = True, horizontal = 'center', vertical = 'center')
@@ -956,10 +937,8 @@ def main(courses, name, config_file, fullname, vnum, sem_flag):
     wb.close()
 
     
-    if sem_flag:
-        path = 'students\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_curr_sem).xlsx'
-    else:
-        path = 'students\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_next_sem).xlsx'
+
+    path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor).xlsx'
 
     #open excel file
     wb = load_workbook(filename = 'Template Planning Sheet.xlsx')

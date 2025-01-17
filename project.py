@@ -3,7 +3,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.edge.options import Options
-from selenium.common.exceptions import NoSuchElementException, SessionNotCreatedException
+from selenium.common.exceptions import NoSuchElementException, SessionNotCreatedException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import tkinter #GUI
 from tkinter import *
 from tkinter import messagebox
@@ -19,31 +22,27 @@ class credentials():
     #Opens a window and prompts user to select config file and to log in
     def greeting_window (self, greeting, filename):
         portal = Tk()
-        portal.geometry("180x60")
+        #portal.geometry("200x90")
         portal.title("Auto Advisor: Home")
         is_anon = BooleanVar(portal, value = self.anonymous)
-        is_current_sem = BooleanVar(portal, value = self.current_sem)
         welcome = Label(portal, text = greeting)
         portal.after(1, lambda: portal.focus_force())
         #if no configuration file is selected, prompt user for config file
         if len(filename) == 0 or not re.search('.xlsx$', filename):
             config = Button(portal, text="Set Configuration File", command = lambda:[portal.destroy(), self.set_config()])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.set_config()])
-            welcome.pack(side = TOP, expand = True)
-            config.pack(side = BOTTOM, expand = True)
+            welcome.pack(side = TOP)
+            config.pack(side = BOTTOM)
         #if a config file has be selected, prompt user to log in
         else:
-            portal.geometry("260x120")
             login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
             config = Button(portal, text="Change Configuration File", command = lambda:[portal.destroy(), self.set_config()])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.click_login()])
-            anon_btn = Checkbutton(portal, text="Hide Student Names", variable = is_anon, command = lambda:[self.toggle_anonymous(is_anon.get())])
-            sem_btn = Checkbutton(portal, text="Toggle on if planning for Current Semester", variable = is_current_sem, command = lambda:[self.toggle_sem(is_current_sem.get())])
-            config.pack(side = BOTTOM, expand = True)
-            welcome.pack(side = TOP, expand = True)
-            login.pack(side = BOTTOM, expand = True)
-            anon_btn.pack(side = TOP, expand = True)
-            sem_btn.pack(side = TOP, expand = True)
+            config.pack(side = BOTTOM)
+            welcome.pack(side = TOP)
+            login.pack(side = BOTTOM)
+        anon_btn = Checkbutton(portal, text="Anonymous Mode", variable = is_anon, command = lambda:[self.toggle_anonymous(is_anon.get())])
+        anon_btn.pack(side = TOP)
         portal.mainloop()
 
     def toggle_anonymous (self, is_anon):
@@ -54,15 +53,6 @@ class credentials():
 
     def is_anonymous(self):
         return self.anonymous
-
-    def toggle_sem (self, is_current_sem):
-        if is_current_sem:
-            self.current_sem = True
-        else:
-            self.current_sem = False
-
-    def get_sem_flag(self):
-        return self.current_sem
 
     #function that grabs file path of config file
     def set_config(self):
@@ -78,37 +68,39 @@ class credentials():
     def click_login(self):
         #opens a window to grab student login info
         login = Tk()
-        login.geometry("200x103")
+        #login.geometry("200x90")
         login.title("Auto Advisor: Login")
         welcome = Label(login, text = "Enter your V-Number and PIN:")
         login.after(1, lambda: login.focus_force())
-        Label(login, text='V-Number').grid(row=1, pady = 1)
-        Label(login, text='PIN').grid(row=2, pady = 1)
-        uid = Entry(login)
-        pwd = Entry(login, show ="*")
+        Label(login, text='E-mail').grid(row=1)
+        Label(login, text='Password').grid(row=2)
+        Label(login, text="@vsu.edu").grid(row=1, column = 2)
+        uid = Entry(login, width = 15)
+        pwd = Entry(login, show ="*", width = 25)
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
         back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting, self.filename)])
         login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
-        welcome.grid(row = 0, columnspan = 3, padx = 10,pady = 2)
-        uid.grid(row = 1, column = 1, columnspan = 3)
-        pwd.grid(row = 2, column = 1, columnspan = 3)
-        submit.grid(row = 3, column = 0, columnspan = 2, ipadx = 20, pady = 3)
-        back.grid(row = 3, column = 2, columnspan = 2, ipadx = 20, pady = 3)
+        welcome.grid(row = 0, columnspan = 3)
+        uid.grid(row = 1, column = 1)
+        pwd.grid(row = 2, column = 1, columnspan = 2)
+        submit.grid(row = 3, column = 1)
+        back.grid(row = 3, column = 2)
         
     #sets user's login info
     def set_credentials(self, uid, pwd):
-        self.username = uid.get()
+        self.username = uid.get() + "@vsu.edu"
         self.password = pwd.get()
         
     #returns login info
     def get_credentials(self):
         return self.username, self.password
 
+    #---LEGACY CODE! Considering removal!!!
     #warns the user that they have failed to log in 3 times
     def login_warning(self):
         warn = Tk()
-        warn.geometry("200x90")
+        #warn.geometry("200x90")
         warn.title("Warning!")
         warning = Label(text = "Warning! You have failed to login 3 times now. Please ensure that you enter your information correctly.")
         warn.after(1, lambda: warn.focus_force())
@@ -118,10 +110,11 @@ class credentials():
         back.pack(side = TOP)
         warn.mainloop()
 
+    #---LEGACY CODE! Considering removal!!!
     #terminates the program if user fails to log in 4 times
     def login_timeout(self):
         terminate = Tk()
-        terminate.geometry("200x90")
+        #terminate.geometry("200x90")
         terminate.title("Too Many Login Attempts")
         terminate.after(1, lambda: terminate.focus_force())
         message = Label(text = "You have attempted too many failed login attempts. To prevent account lockout, please try again later.")
@@ -131,6 +124,7 @@ class credentials():
         end.pack(side = TOP)
         terminate.mainloop()
 
+    #---LEGACY CODE! Consider modifying!!!
     #method that prompts user to correct invalid login info
     def invalid_creds(self):
         self.greeting = 'Invalid login credentials!'
@@ -142,10 +136,11 @@ class credentials():
         else:
             self.login_timeout()
 
+    #---LEGACY CODE, no longer functional. Consider Removing!!!
     #method that warns the user when student login credentials are entered
     def student_detected(self):
         window = Tk()
-        window.geometry("200x50")
+        #window.geometry("200x50")
         window.title("Student Detected!")
         window.after(1, lambda: window.focus_force())
         msg = Label(window, text="Only Advisors can use AutoAdvisor!")
@@ -183,32 +178,53 @@ class credentials():
                     vnums.append(vnum)
                 f1.close()
                 #return list of v-numbers
-                print(vnums)
                 return vnums
 
     #UNTESTED CODE!
     #Warns the user if Edge webdriver is not installed or up to date
     def update_webdriver(self):
         update = Tk()
-        update.geometry('200x90')
+        #update.geometry('200x90')
         update.title('Update Edge Webdriver')
         update.after(1, lambda: update.focus_force())
         msg = Label(update, text="Please update Edge webdriver!")
-        ok_btn = Button(update, test="OK", command = lambda:[update.destroy, sys.exit('Program Terminated')])
+        ok_btn = Button(update, text="OK", command = lambda:[update.destroy(), sys.exit('Program Terminated')])
         update.bind('<Return>', update.destroy)
         msg.pack(side = TOP)
         ok_btn.pack(side = BOTTOM)
         update.mainloop()
+    
+    #Gets 2FA input from user    
+    def get_pin(self):
+        pinget = Tk()
+        pinget.title('2FA Code')
+        pinget.after(1, lambda: pinget.focus_force())
+        msg = Label(pinget, text='Enter 2FA Code:')
+        code = Entry(pinget)
+        submit = Button(pinget, text='Submit', command = lambda:[self.set_pin(code), pinget.destroy()])
+        pinget.bind('<Return>', lambda x:[self.set_pin(code), pinget.destroy()])
+        msg.pack(side = TOP)
+        code.pack()
+        submit.pack(side = BOTTOM)
+        pinget.mainloop()
+       
+    #Sets 2FA code for retrieval    
+    def set_pin(self, pin):
+        self.pin = pin.get()
+    
+    #Fetches stored 2FA code
+    def return_pin(self):
+        return self.pin
 
     #instantiates class
     def __init__(self):
         self.username = ""
         self.password = ""
         self.filename = ""
+        self.pin = ""
         self.greeting = 'Welcome to Auto-Advisor!'
         self.login_count = 0
         self.anonymous = False
-        self.current_sem = False
         self.greeting_window(self.greeting, self.filename)
 
 #method to return appropriate value for term dropdown
@@ -252,10 +268,9 @@ def build_path(path, fullname):
         sys.exit("An unexpected error has occurred: Unable to locate student's name!")
 
 def build_files(path, driver, fullname):
-    driver.find_element(By.XPATH, "//table[contains(@class, 'dataentrytable')]").submit()
-
     #scrape transcript for courses and semesters
-    data = driver.find_elements(By.XPATH, "//table[@class = 'datadisplaytable']")
+    wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
+    data = driver.find_elements(By.XPATH, "//table")
 
     courses = []
     semesters = []
@@ -265,30 +280,24 @@ def build_files(path, driver, fullname):
     is_curr = False
     #used to hold course as we build it from data
     proto = ""
+    course_marker = False
+    
+    output = []
 
     for i in data:
-        output = i.text.split('\n')
+        output += i.text.split('\n')
 
     for line in output:
         #Find each semester as we iterate through scraped data
         #signifies the start of courses in progress
-        if re.search("COURSES IN PROGRESS", line) and not is_curr:
+        if re.search("Course\(s\) in progress", line) and not is_curr:
             is_curr = True
-        if re.search("Spring", line) or re.search("Summer", line) or \
-           re.search("Fall", line) or re.search("Winter", line) or \
-           re.search("1:", line):
+        if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates", line):
             if sem_start:
                 #lets us know that we've reached the end of a previous semester
                 sem_end = True
             #signifies the start of a new semester
             sem_start = True
-            #store the current semester into semesters array
-            if re.search("Spring [0-9]{4}|Summer [0-9]{4}|Fall [0-9]{4}|Winter [0-9]{4}", line):
-                semesters.append(re.search("Spring [0-9]{4}|Summer [0-9]{4}|Fall [0-9]{4}|Winter [0-9]{4}", line).group())
-            #for semesters that are missing a term name
-            else:
-                semesters.append("UNKNOWN")
-            semesters.append("-")
         #if we are in a semester, find the courses
         elif sem_start:
             #add marker to course array to signify semesters
@@ -296,28 +305,65 @@ def build_files(path, driver, fullname):
                 courses.append("-")
                 sem_end = False
             #append credits to course
-            if bool(proto):
-                proto.append(line)
-                course = proto.copy()
-                #pop empty indices at beginning of course
-                while not bool(course[0]):
-                    course.pop(0)
-                #remove 'U' from courses
-                if course[2] == 'U':
-                    course.pop(2)
-                #append course to array and reset proto
-                courses.append(course)
-                proto.clear()
-            #find a course and store it to the holder array
-            elif re.search("[A-Z]{4} ", line) and not re.search("-Top-", line):
-                proto = line.replace("\n", " ").split(" ")
+            if course_marker:
+                if re.search("[0-9]+.[0-9]{3}", line):
+                    course_marker = False
+                    for i in line.replace("\n", " ").split(" "):
+                        proto.append(i)
+                    course = proto.copy()
+                    #pop empty indices at beginning of course
+                    while not bool(course[0]):
+                        course.pop(0)
+                    #remove 'U' from courses
+                    if course[2] == 'U':
+                        course.pop(2)
+                    #remove unnecessary indices at end of course
+                    try:
+                        while re.search("[0-9]+.[0-9]{3}" ,course[-2]):
+                            course.pop()
+                    except IndexError as e:
+                        print(e)
+                        print(course)
+                        print(line)
+                        sys.exit()
+                    #append course to array and reset proto
+                    courses.append(course)
+                    #print(proto)
+                    proto.clear()
                 #check if we reached current/future semesters
-                if is_curr:
-                    #add 'inprog' to current/future courses
-                    proto.append("inprog")
+                else:
+                    for i in line.replace("\n", " ").split(" "):
+                        proto.append(i)
+            #find a course and store it to the holder array
+            elif re.search("[A-Z]{4}", line):
+                proto = line.replace("\n", " ").split(" ")
+                #Extra code to catch transfer courses and current semester courses, since their contents are stored in one line
+                if re.search("0.000$", line) or is_curr:
+                    course = proto.copy()
+                    #Add 'inprog' to current semester courses as they have no letter grade
+                    if is_curr:
+                        course.insert(-1, "inprog")
+                    #remove unnecessary indices at end of course
+                    else:
+                        course.pop()
+                    courses.append(course)
+                    proto.clear()
+                else:
+                    course_marker = True
 
     #Append separator for final course structure
     courses.append("-")
+    
+    data = driver.find_elements(By.CSS_SELECTOR, ".sub-heading.period-padding.ng-binding")
+    
+    output = []
+
+    for i in data:
+        output += i.text.split('\n')
+        
+    for line in output:
+        semesters.append(line)
+        semesters.append('-')
 
     #print courses to file
     create_file_path(fullname , path, "/courses.txt", "courses", courses)
@@ -374,66 +420,60 @@ config_file = user.get_config()
 
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 #May be relevant: SessionNotCreatedException
-options = Options()
-options.add_argument("headless")
 try:
     #driver = webdriver.Edge(options = options)
     driver = webdriver.Edge()
-    driver.get('https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_WWWLogin')
+    driver.get('https://login.vsu.edu')
 except SessionNotCreatedException:
     user.update_webdriver()
 #--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 
-#Track if user is at landing page
-home_url = "https://ssb-prod.ec.vsu.edu/BNPROD/twbkwbis.P_GenMenu?name=bmenu.P_MainMnu"
-url = driver.current_url.split("&")[0]
+wait = WebDriverWait(driver, 10)
 
 vnums = []
 is_logged = False
 
 #Create loop to allow user to login with multiple attempts
-i = 0
-while not is_logged:
-    #set new login credentials
-    username, password = user.get_credentials()
+username, password = user.get_credentials()
     
-    if not bool(username) or not bool(password):
-        continue
+#attempt to log in
+wait.until(EC.visibility_of_element_located((By.ID, "input28")))
+uid = driver.find_element(By.ID, "input28")
+uid.send_keys(username)
+driver.find_element(By.CSS_SELECTOR, ".button").click()
+
+wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Select Password.']")))
+driver.find_element(By.XPATH, "//a[@aria-label='Select Password.']").click()
+
+wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
+pwd = driver.find_element(By.XPATH, "//input[@type='password']")
+pwd.send_keys(password)
+driver.find_element(By.CSS_SELECTOR, ".button").click()
+
+#Get 2FA code from user
+user.get_pin()
+pin = user.return_pin()
+wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='text']")))
+pin_entry = driver.find_element(By.XPATH, "//input[@type='text']")
+pin_entry.send_keys(pin)
+
+driver.find_element(By.CSS_SELECTOR, ".button").click()
+
+wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']")))
+driver.find_element(By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']").click()
+
+original_window = driver.current_window_handle
+
+for window_handle in driver.window_handles:
+    if window_handle != original_window:
+        driver.switch_to.window(window_handle)
         
-    #attempt to log in
-    uid = driver.find_element(By.ID, "UserID")
-    pwd = driver.find_element(By.ID, "PIN")
-
-    uid.send_keys(username)
-    pwd.send_keys(password)
-
-    driver.find_element(By.XPATH, "//form").submit()
-
-    i += 1
-
-    #detect whether student or advisor is logged in by available links
-    try:
-        #if this link is available, then advisor is logged in
-        driver.find_element(By.LINK_TEXT, "Faculty and Advisors")
-        is_logged = True
-    #if above link can't be found, check if student is logged in
-    except NoSuchElementException:
-        try:
-            driver.find_element(By.LINK_TEXT, "Student")
-            user.student_detected()
-            driver.quit()
-            sys.exit("Program Terminated!")
-        #if no successful login detected, prompt user to try again
-        except NoSuchElementException:
-            old_username = username
-            old_password = password
-            user.invalid_creds()
-
-            if old_username == username and old_password == password:
-                driver.quit()
-                sys.exit("No input change for login credentials detected! Terminating Porgram...")
+second_window = driver.current_window_handle
 
 vnums = user.get_vnums()
+
+wait.until(EC.title_is("Faculty Services Dashboard"))
+driver.find_element(By.LINK_TEXT, "Advising Student Profile").click()
 
 #Used to hold student names
 fullname = []
@@ -441,91 +481,94 @@ names = []
 error_vnums = []
 
 is_anonymous = user.is_anonymous()
-sem_flag = user.get_sem_flag()
 
 itr = 0
 #crawl through banner until we get to student id
-driver.find_element(By.LINK_TEXT, "Faculty and Advisors").click()
 index = 0
 first = True
 while index < len(vnums):
-    driver.find_element(By.LINK_TEXT, "Student Information Menu").click()
-    driver.find_element(By.LINK_TEXT, "ID Selection").click()
-    #The following dropdown menu lacks an id
-    #so to select for current semester, I noticed html code stored
-    #dropdown values as dates, I used a method to grab current
-    #month and year, and store it to a variable to use as value
-    date = get_timecode()
-    #We visit the 'Select Term' page only once, during the first time we crawl
-    if first:
-        term = Select(driver.find_element(By.XPATH, "//select[@name='term']"))
-        term.select_by_value(date)
-        driver.find_element(By.XPATH, "//td[@class='dedefault']").submit()
-        first = False
+    advisor = ""
     #requests student id and uses it to get to transcript
-    sid = driver.find_element(By.ID, "Stu_ID")
-    sid.send_keys(vnums[index])
+    wait.until(EC.visibility_of_element_located((By.ID, "s2id_select2-term")))
+    sid = driver.find_element(By.ID, "idSearchInput")
+    action = ActionChains(driver).send_keys_to_element(sid, vnums[index]).perform()
     #Additional crawling logic if we've reached the last vnum in list
-    if index == len(vnums):
-        driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
+    #if index == len(vnums):
+        #driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
         #gets student name
-        try:
-            name = driver.find_element(By.TAG_NAME, 'b')
-            names.append(name.text.split(" "))
-            fullname.append(name.text.replace(" ", "").replace(".", ""))
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-        #if this error occurs, then v-number is not associated with a student
-        except NoSuchElementException:
-            print("Error occurred at " + vnums[index])
-            error_vnums.append(vnums.pop(index))
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-            driver.find_element(By.LINK_TEXT, "Faculty Services").click()
-            index += 1
-            continue
-    #For all other vnums that are not last in list
+    #try:
+    try:
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
+    except TimeoutException:
+        action = ActionChains(driver).send_keys_to_element(sid, vnums[index]).send_keys_to_element(sid, Keys.ENTER).perform()
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
+    name = driver.find_element(By.CSS_SELECTOR, '.search-result.name')
+    if name != "No match found.":
+        names.append(name.text.split(" "))
+        if names[0] == "Mr":
+            names.pop(0)
+        fullname.append(name.text.replace(" ", "").replace(".", ""))
+        wait.until(EC.element_to_be_clickable((By.ID, "term-go"))).click()
     else:
-        try:
-            name = driver.find_element(By.TAG_NAME, 'b')
-            names.append(name.text.split(" "))
-            fullname.append(name.text.replace(" ", "").replace(".", ""))
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-        except NoSuchElementException:
-            print("Error occurred at " + vnums[index])
-            error_vnums.append(vnums.pop(index))
-            index -= 1
-            driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-            driver.find_element(By.LINK_TEXT, "Faculty Services").click()
-            index += 1
-            continue
-        
+        error_vnums.append(vnums.pop(index))
+        index -= 1
+        continue
 
     #crawl webpage to academic transcript
+    wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Academic Transcript")))
+    try:
+        advisor_listing = driver.find_element(By.CSS_SELECTOR, ".facultyLinkClass:nth-child(2)").text.split(" ")
+        advisor = advisor_listing[-1]
+    except NoSuchElementException:
+        pass
     driver.find_element(By.LINK_TEXT, "Academic Transcript").click()
+    
+    for window_handle in driver.window_handles:
+        if window_handle != original_window and window_handle != second_window:
+            driver.switch_to.window(window_handle)
+            
+    wait.until(EC.visibility_of_element_located((By.ID, "select2-placeholder-1")))
+    driver.find_element(By.ID, "select2-placeholder-1").click()
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@id='ui-select-choices-row-1-']/div/div")))
+    driver.find_element(By.XPATH, "//li[@id='ui-select-choices-row-1-']/div/div").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "select2-placeholder-2")))
+    driver.find_element(By.ID, "select2-placeholder-2").click()
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@id='ui-select-choices-row-2-']/div/div")))
+    driver.find_element(By.XPATH, "//li[@id='ui-select-choices-row-2-']/div/div").click()
 
-    levl_id = Select(driver.find_element(By.ID, "levl_id"))
-    type_id = Select(driver.find_element(By.ID, "tprt_id"))
+    if not bool(advisor):
+        advisor = "No Advisor Listed"
+    if not os.path.exists(os.path.join("advisors", advisor)):
+        os.makedirs(os.path.join("advisors", advisor))
+        print("Created new advisor directory for " + advisor)
+        
+    print("Adding " + fullname[index] + " to advisor " + advisor)
 
     #set path for student using their name
     if is_anonymous:
-        path = "students/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
+        path = "advisors/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
         build_files(path, driver, vnums[index].strip())
     else:
-        path = "students/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
+        path = "advisors/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
         build_files(path, driver, fullname[index].strip())
 
-    driver.find_element(By.LINK_TEXT, "Faculty Services").click()
+    driver.close()
+    driver.switch_to.window(second_window)
+    driver.find_element(By.LINK_TEXT, "Advisee Search").click()
     itr += 1
     index += 1
 
 #Web driver is no longer needed
 driver.quit()
 
+#--------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
+
 if is_anonymous:
-    preprocess.main(vnums, config_file, vnums, names, sem_flag)
+    preprocess.main(vnums, config_file, vnums, names)
 else:
-    preprocess.main(fullname, config_file, vnums, names, sem_flag)
+    preprocess.main(fullname, config_file, vnums, names)
 print('Program complete! Check files for advisory report(s).')
 if len(error_vnums) > 0:
     print('Could not generate transcripts for the following V-Numbers:')

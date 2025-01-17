@@ -1,14 +1,26 @@
 import advise
 import re
+import os
 
-def main(fullname, config_file, vnums, names, sem_flag):
+def find_advisor(name, config_file):
+    advisor_path = "advisors/"
+    advisors = [f for f in os.listdir(advisor_path)]
+    for advisor in advisors:
+        #print(advisor)
+        fpath = "advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt"
+        if os.path.exists(fpath):
+            return advisor
+
+def main(fullname, config_file, vnums, names):
     counter = 0
     for name in fullname:
+        advisor = find_advisor(name, config_file)
         name = name.strip()
-        f1 = open("students/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt", "r")
-        f2 = open("students/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/semesters.txt", "r")
+        f1 = open("advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt", "r")
+        f2 = open("advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/semesters.txt", "r")
 
         print("Formatting Transcript for " + name + "...")
+        print(vnums[counter])
 
         #Read semesters from file and insert it into list semesters
         semesters = []
@@ -16,13 +28,14 @@ def main(fullname, config_file, vnums, names, sem_flag):
             if len(line) > 2:
                 line=line.strip()
                 sem = ''
-                if re.search('Spring', line):
+                print(line)
+                if re.search('Term : Spring', line):
                     sem = 'SP' + line[-2:]
-                elif re.search('Summer', line):
+                elif re.search('Term : Summer', line):
                     sem = 'SU' + line[-2:]
-                elif re.search('Fall', line):
+                elif re.search('Term : Fall', line):
                     sem = 'FA' + line[-2:]
-                elif re.search('Winter', line):
+                elif re.search('Term : Winter', line):
                     sem = 'WI' + line[-2:]
                 else:
                     sem = 'N/A'
@@ -173,5 +186,5 @@ def main(fullname, config_file, vnums, names, sem_flag):
                     
         #Pass name(string) and courses(list) to advise.py
         #advise.main(courses, name)
-        advise.main(courses, name, config_file, names[counter], vnums[counter], sem_flag)
+        advise.main(courses, name, config_file, names[counter], vnums[counter], advisor)
         counter += 1
