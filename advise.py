@@ -122,7 +122,7 @@ def subs_check(courses, course, unused):
         unused.pop(pop_key)
 
 #checks if student is eleigible for course
-def eligibility_check(key, courses, total_credits, core_courses):
+def eligibility_check(key, courses, total_credits, core_courses, sem_flag):
     course_type = courses_struct[key][0]
     try:
         courses[key][5] = ''
@@ -152,7 +152,15 @@ def eligibility_check(key, courses, total_credits, core_courses):
                         else:
                             elig_code = 1
                     else:
-                        pop_prereqs.append(i)
+                        #if enrolling for courses in current semester, ensure prereq
+                        #is not in progress
+                        if sem_flag and core_courses[prereqs[i]][2] == 'In progress':
+                            if courses[key][2] == 'In progress':
+                                elig_code = 3
+                            else:
+                                elig_code = 1
+                        else:
+                            pop_prereqs.append(i)
                 except KeyError:
                     break
             #for prereqs in which the student has to take 'x' number of courses
@@ -468,7 +476,7 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
                 break
         i += 1
 
-def main(courses, name, config_file, fullname, vnum, advisor):
+def main(courses, name, config_file, fullname, vnum, advisor, sem_flag):
     print("Generating Advisory Report for " + name + "...")
     print(vnum)
 
@@ -688,13 +696,13 @@ def main(courses, name, config_file, fullname, vnum, advisor):
     for course in core_course_stack:
         #Student may be enrolled in courses they aren't eligible for, check for those as well
         if not bool(core_course_stack[course][2]) or core_course_stack[course][2] == "In progress":
-            eligibility_check(course, core_course_stack, total_credits, core_course_stack)
+            eligibility_check(course, core_course_stack, total_credits, core_course_stack, sem_flag)
             
 
     #add a note to electives that the student is eligible to take
     for course in elec_stack:
         if not bool(elec_stack[course][2]) or elec_stack[course][2] == "In progress":
-            eligibility_check(course, elec_stack, total_credits, core_course_stack)
+            eligibility_check(course, elec_stack, total_credits, core_course_stack, sem_flag)
 
     #Set semester structures from configuration file
     frs1, frs2, sos1, sos2, jrs1, jrs2, srs1, srs2 = configuration.get_sems()
@@ -771,7 +779,10 @@ def main(courses, name, config_file, fullname, vnum, advisor):
         courses.append(course)
 
     #set excel file path
-    path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student).xlsx'
+    if sem_flag:
+        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_curr_sem).xlsx'
+    else:
+        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_next_sem).xlsx'
 
     #structure index and coursesd into a dataframe
     df = pd.DataFrame(courses,
@@ -936,9 +947,10 @@ def main(courses, name, config_file, fullname, vnum, advisor):
     wb.save(path)
     wb.close()
 
-    
-
-    path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor).xlsx'
+    if sem_flag:
+        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_curr_sem).xlsx'
+    else:
+        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_next_sem).xlsx'
 
     #open excel file
     wb = load_workbook(filename = 'Template Planning Sheet.xlsx')

@@ -25,6 +25,7 @@ class credentials():
         #portal.geometry("200x90")
         portal.title("Auto Advisor: Home")
         is_anon = BooleanVar(portal, value = self.anonymous)
+        is_current_sem = BooleanVar(portal, value = self.current_sem)
         welcome = Label(portal, text = greeting)
         portal.after(1, lambda: portal.focus_force())
         #if no configuration file is selected, prompt user for config file
@@ -37,10 +38,12 @@ class credentials():
         else:
             login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
             config = Button(portal, text="Change Configuration File", command = lambda:[portal.destroy(), self.set_config()])
+            sem_btn = Checkbutton(portal, text="Toggle on if planning for Current Semester", variable = is_current_sem, command = lambda:[self.toggle_sem(is_current_sem.get())])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.click_login()])
             config.pack(side = BOTTOM)
             welcome.pack(side = TOP)
             login.pack(side = BOTTOM)
+            sem_btn.pack(side = TOP, expand = True)
         anon_btn = Checkbutton(portal, text="Anonymous Mode", variable = is_anon, command = lambda:[self.toggle_anonymous(is_anon.get())])
         anon_btn.pack(side = TOP)
         portal.mainloop()
@@ -53,6 +56,15 @@ class credentials():
 
     def is_anonymous(self):
         return self.anonymous
+    
+    def toggle_sem (self, is_current_sem):
+        if is_current_sem:
+            self.current_sem = True
+        else:
+            self.current_sem = False
+
+    def get_sem_flag(self):
+        return self.current_sem
 
     #function that grabs file path of config file
     def set_config(self):
@@ -225,6 +237,7 @@ class credentials():
         self.greeting = 'Welcome to Auto-Advisor!'
         self.login_count = 0
         self.anonymous = False
+        self.current_sem = False
         self.greeting_window(self.greeting, self.filename)
 
 #method to return appropriate value for term dropdown
@@ -292,7 +305,7 @@ def build_files(path, driver, fullname):
         #signifies the start of courses in progress
         if re.search("Course\(s\) in progress", line) and not is_curr:
             is_curr = True
-        if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates", line):
+        if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates|Subject Course Campus Level Title Credit Hours Start and End Dates", line):
             if sem_start:
                 #lets us know that we've reached the end of a previous semester
                 sem_end = True
@@ -442,8 +455,11 @@ uid = driver.find_element(By.ID, "input28")
 uid.send_keys(username)
 driver.find_element(By.CSS_SELECTOR, ".button").click()
 
-wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Select Password.']")))
-driver.find_element(By.XPATH, "//a[@aria-label='Select Password.']").click()
+try:
+    wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Select Password.']")))
+    driver.find_element(By.XPATH, "//a[@aria-label='Select Password.']").click()
+except TimeoutException:
+    pass
 
 wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
 pwd = driver.find_element(By.XPATH, "//input[@type='password']")
@@ -481,6 +497,7 @@ names = []
 error_vnums = []
 
 is_anonymous = user.is_anonymous()
+sem_flag = user.get_sem_flag()
 
 itr = 0
 #crawl through banner until we get to student id
@@ -543,6 +560,7 @@ while index < len(vnums):
         print("Created new advisor directory for " + advisor)
         
     print("Adding " + fullname[index] + " to advisor " + advisor)
+    print("(student " + str(index + 1) + " of " + str(len(vnums)) + ")")
 
     #set path for student using their name
     if is_anonymous:
@@ -566,9 +584,9 @@ driver.quit()
 #--------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
 
 if is_anonymous:
-    preprocess.main(vnums, config_file, vnums, names)
+    preprocess.main(vnums, config_file, vnums, names, sem_flag)
 else:
-    preprocess.main(fullname, config_file, vnums, names)
+    preprocess.main(fullname, config_file, vnums, names, sem_flag)
 print('Program complete! Check files for advisory report(s).')
 if len(error_vnums) > 0:
     print('Could not generate transcripts for the following V-Numbers:')

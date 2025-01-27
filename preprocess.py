@@ -11,7 +11,7 @@ def find_advisor(name, config_file):
         if os.path.exists(fpath):
             return advisor
 
-def main(fullname, config_file, vnums, names):
+def main(fullname, config_file, vnums, names, sem_flag):
     counter = 0
     for name in fullname:
         advisor = find_advisor(name, config_file)
@@ -186,5 +186,5 @@ def main(fullname, config_file, vnums, names):
                     
         #Pass name(string) and courses(list) to advise.py
         #advise.main(courses, name)
-        advise.main(courses, name, config_file, names[counter], vnums[counter], advisor)
+        advise.main(courses, name, config_file, names[counter], vnums[counter], advisor, sem_flag)
         counter += 1
