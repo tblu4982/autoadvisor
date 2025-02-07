@@ -2,22 +2,22 @@ import advise
 import re
 import os
 
-def find_advisor(name, config_file):
+def find_advisor(name, config_file, timestamp):
     advisor_path = "advisors/"
     advisors = [f for f in os.listdir(advisor_path)]
     for advisor in advisors:
         #print(advisor)
-        fpath = "advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt"
+        fpath = "advisors/" + timestamp + "/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt"
         if os.path.exists(fpath):
             return advisor
 
-def main(fullname, config_file, vnums, names, sem_flag):
+def main(fullname, config_file, vnums, names, sem_flag, timestamp):
     counter = 0
     for name in fullname:
-        advisor = find_advisor(name, config_file)
+        advisor = find_advisor(name, config_file, timestamp)
         name = name.strip()
-        f1 = open("advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt", "r")
-        f2 = open("advisors/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/semesters.txt", "r")
+        f1 = open("advisors/" + timestamp + "/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/courses.txt", "r")
+        f2 = open("advisors/" + timestamp + "/" + advisor + "/" + name + "/" + config_file.split('/')[-1].split('.')[0] + "/semesters.txt", "r")
 
         print("Formatting Transcript for " + name + "...")
         print(vnums[counter])
@@ -186,5 +186,5 @@ def main(fullname, config_file, vnums, names, sem_flag):
                     
         #Pass name(string) and courses(list) to advise.py
         #advise.main(courses, name)
-        advise.main(courses, name, config_file, names[counter], vnums[counter], advisor, sem_flag)
+        advise.main(courses, name, config_file, names[counter], vnums[counter], advisor, sem_flag, timestamp)
         counter += 1

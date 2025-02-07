@@ -476,7 +476,7 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
                 break
         i += 1
 
-def main(courses, name, config_file, fullname, vnum, advisor, sem_flag):
+def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestamp):
     print("Generating Advisory Report for " + name + "...")
     print(vnum)
 
@@ -780,9 +780,9 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag):
 
     #set excel file path
     if sem_flag:
-        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_curr_sem).xlsx'
+        path = 'advisors\\' + timestamp + "\\" + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_curr_sem).xlsx'
     else:
-        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_next_sem).xlsx'
+        path = 'advisors\\' + timestamp + "\\" + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Student_next_sem).xlsx'
 
     #structure index and coursesd into a dataframe
     df = pd.DataFrame(courses,
@@ -948,9 +948,9 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag):
     wb.close()
 
     if sem_flag:
-        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_curr_sem).xlsx'
+        path = 'advisors\\' + timestamp + "\\" + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_curr_sem).xlsx'
     else:
-        path = 'advisors\\' + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_next_sem).xlsx'
+        path = 'advisors\\' + timestamp + "\\" + advisor + '\\' + name + '\\' + config_file.split('/')[-1].split('.')[0] + '\\' + name + '_planning_sheet(Advisor_next_sem).xlsx'
 
     #open excel file
     wb = load_workbook(filename = 'Template Planning Sheet.xlsx')

@@ -186,8 +186,10 @@ class credentials():
             else:
                 self.filename = file_name
                 f1 = open(file_name)
-                for vnum in f1:
-                    vnums.append(vnum)
+                for line in f1:
+                    vnum = line.strip()
+                    if bool(vnum):
+                        vnums.append(vnum)
                 f1.close()
                 #return list of v-numbers
                 return vnums
@@ -499,6 +501,9 @@ error_vnums = []
 is_anonymous = user.is_anonymous()
 sem_flag = user.get_sem_flag()
 
+dt = datetime.now()
+timestamp = dt.strftime("%b") + "-" + str(dt.day) + "-" + str(dt.year) + "-" + str(dt.hour) + "-" + str(dt.minute) + "-" + str(dt.second)
+
 itr = 0
 #crawl through banner until we get to student id
 index = 0
@@ -518,7 +523,12 @@ while index < len(vnums):
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
     except TimeoutException:
         action = ActionChains(driver).send_keys_to_element(sid, vnums[index]).send_keys_to_element(sid, Keys.ENTER).perform()
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
+        try:
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
+        except TimeoutException:
+            print(f"Error! {vnums[index]} could not be found!")
+            error_vnums.append(vnums.pop(index))
+            continue
     name = driver.find_element(By.CSS_SELECTOR, '.search-result.name')
     if name != "No match found.":
         names.append(name.text.split(" "))
@@ -527,8 +537,8 @@ while index < len(vnums):
         fullname.append(name.text.replace(" ", "").replace(".", ""))
         wait.until(EC.element_to_be_clickable((By.ID, "term-go"))).click()
     else:
+        print(f"Error! {vnums[index]} could not be found!")
         error_vnums.append(vnums.pop(index))
-        index -= 1
         continue
 
     #crawl webpage to academic transcript
@@ -564,11 +574,11 @@ while index < len(vnums):
 
     #set path for student using their name
     if is_anonymous:
-        path = "advisors/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
+        path = "advisors/" + timestamp + "/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
         build_files(path, driver, vnums[index].strip())
     else:
-        path = "advisors/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
+        path = "advisors/" + timestamp + "/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
         build_files(path, driver, fullname[index].strip())
 
@@ -584,11 +594,14 @@ driver.quit()
 #--------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
 
 if is_anonymous:
-    preprocess.main(vnums, config_file, vnums, names, sem_flag)
+    preprocess.main(vnums, config_file, vnums, names, sem_flag, timestamp)
 else:
-    preprocess.main(fullname, config_file, vnums, names, sem_flag)
+    preprocess.main(fullname, config_file, vnums, names, sem_flag, timestamp)
 print('Program complete! Check files for advisory report(s).')
 if len(error_vnums) > 0:
-    print('Could not generate transcripts for the following V-Numbers:')
-    for vnum in error_vnums:
-        print(vnum)
+    print('AutoAdvisor has encountered an issue parsing some V-Numbers. Please check the error file')
+    f2 = "advisors/" + timestamp + "/error_vnums.txt"
+    with open(f2, 'w') as outfile:
+        outfile.write("AutoAdvisor has encountered an issue parsing the following V-Number(s):\n")
+        for vnum in error_vnums:
+            outfile.write(f"{vnum}\n")
