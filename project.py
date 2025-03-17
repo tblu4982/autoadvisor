@@ -514,6 +514,7 @@ while index < len(vnums):
     wait.until(EC.visibility_of_element_located((By.ID, "s2id_select2-term")))
     sid = driver.find_element(By.ID, "idSearchInput")
     action = ActionChains(driver).send_keys_to_element(sid, vnums[index]).perform()
+    wait = WebDriverWait(driver, 1)
     #Additional crawling logic if we've reached the last vnum in list
     #if index == len(vnums):
         #driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
@@ -529,6 +530,7 @@ while index < len(vnums):
             print(f"Error! {vnums[index]} could not be found!")
             error_vnums.append(vnums.pop(index))
             continue
+    wait = WebDriverWait(driver, 10)
     name = driver.find_element(By.CSS_SELECTOR, '.search-result.name')
     if name != "No match found.":
         names.append(name.text.split(" "))
@@ -554,14 +556,16 @@ while index < len(vnums):
         if window_handle != original_window and window_handle != second_window:
             driver.switch_to.window(window_handle)
             
-    wait.until(EC.visibility_of_element_located((By.ID, "select2-placeholder-1")))
-    driver.find_element(By.ID, "select2-placeholder-1").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "transcriptLevelSelection")))
+    driver.find_element(By.ID, "transcriptLevelSelection").click()
     wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@id='ui-select-choices-row-1-']/div/div")))
     driver.find_element(By.XPATH, "//li[@id='ui-select-choices-row-1-']/div/div").click()
-    wait.until(EC.visibility_of_element_located((By.ID, "select2-placeholder-2")))
-    driver.find_element(By.ID, "select2-placeholder-2").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "transcriptTypeSelection")))
+    driver.find_element(By.ID, "transcriptTypeSelection").click()
     wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@id='ui-select-choices-row-2-']/div/div")))
     driver.find_element(By.XPATH, "//li[@id='ui-select-choices-row-2-']/div/div").click()
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//button[contains(.,'Submit')]")))
+    driver.find_element(By.XPATH, "//button[contains(.,'Submit')]").click()
 
     if not bool(advisor):
         advisor = "No Advisor Listed"
