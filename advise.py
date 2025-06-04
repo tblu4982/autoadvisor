@@ -804,6 +804,7 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
     ws.column_dimensions['D'].width = 10
     ws.column_dimensions['E'].width = 7
     ws.column_dimensions['F'].width = 12
+    
     #center text for certain columns
     for row in ws:
         cells = [row[0], row[3], row[5]]
@@ -942,6 +943,16 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
     upper_range = 'A' + str(start+4)
     cell = ws[upper_range]
     cell.value = "For example, if you register for lecture CSCI 150-03, then register for Lab CSCI 151-03"
+    
+    for row in range(1, ws.max_row + 1):
+        cell = ws.cell(row = row, column = 5)
+        try:
+            cell.value = float(cell.value)
+            cell.number_format = "0.000"
+            print(cell.value)
+            print(type(cell.value))
+        except (ValueError, TypeError) as e:
+            print(e)
         
     #save changes to excel file
     wb.save(path)

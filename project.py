@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import tkinter #GUI
 from tkinter import *
+from tkinter.ttk import *
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from datetime import datetime
@@ -16,6 +17,8 @@ import os #used for read/write to files
 import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
 import preprocess
+
+version = "2.4.4"
 
 #Class to hold user login info for session
 class credentials():
@@ -78,26 +81,35 @@ class credentials():
 
     #method to grab student login info
     def click_login(self):
+        def on_option_value_change(*args):
+            self.set_verify_method(option.get())
         #opens a window to grab student login info
         login = Tk()
         #login.geometry("200x90")
         login.title("Auto Advisor: Login")
+        auth_options = ["Google Authenticator", "Okta 2FA Code", "Okta Push Notification"]
         welcome = Label(login, text = "Enter your V-Number and PIN:")
         login.after(1, lambda: login.focus_force())
         Label(login, text='E-mail').grid(row=1)
         Label(login, text='Password').grid(row=2)
         Label(login, text="@vsu.edu").grid(row=1, column = 2)
+        Label(login, text="Auth Method:").grid(row = 3)
         uid = Entry(login, width = 15)
         pwd = Entry(login, show ="*", width = 25)
+        option = StringVar(value=self.get_verify_method())
+        option.trace_add("write", on_option_value_change)
+        print(self.get_verify_method())
+        auth_menu = OptionMenu(login, option, self.get_verify_method(), *auth_options)
         #when submit button is clicked, it sends credentials to Banner Portal
-        submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), login.destroy()])
+        submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), self.set_verify_method(option.get()), login.destroy()])
         back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting, self.filename)])
         login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
         welcome.grid(row = 0, columnspan = 3)
         uid.grid(row = 1, column = 1)
         pwd.grid(row = 2, column = 1, columnspan = 2)
-        submit.grid(row = 3, column = 1)
-        back.grid(row = 3, column = 2)
+        auth_menu.grid(row = 3, column = 1, columnspan = 2)
+        submit.grid(row = 4, column = 1)
+        back.grid(row = 4, column = 2)
         
     #sets user's login info
     def set_credentials(self, uid, pwd):
@@ -211,16 +223,32 @@ class credentials():
     #Gets 2FA input from user    
     def get_pin(self):
         pinget = Tk()
-        pinget.title('2FA Code')
-        pinget.after(1, lambda: pinget.focus_force())
-        msg = Label(pinget, text='Enter 2FA Code:')
-        code = Entry(pinget)
-        submit = Button(pinget, text='Submit', command = lambda:[self.set_pin(code), pinget.destroy()])
-        pinget.bind('<Return>', lambda x:[self.set_pin(code), pinget.destroy()])
-        msg.pack(side = TOP)
-        code.pack()
-        submit.pack(side = BOTTOM)
-        pinget.mainloop()
+        auth_method = self.get_verify_method()
+        match auth_method:
+            case "Google Authenticator":
+                pinget.title('Google Auth 2FA Code')
+                pinget.after(1, lambda: pinget.focus_force())
+                msg = Label(pinget, text='Enter 2FA Code:')
+                code = Entry(pinget)
+                submit = Button(pinget, text='Submit', command = lambda:[self.set_pin(code), pinget.destroy()])
+                pinget.bind('<Return>', lambda x:[self.set_pin(code), pinget.destroy()])
+                msg.pack(side = TOP)
+                code.pack()
+                submit.pack(side = BOTTOM)
+                pinget.mainloop()
+            case "Okta 2FA Code":
+                pinget.title('Okta 2FA Code')
+                pinget.after(1, lambda: pinget.focus_force())
+                msg = Label(pinget, text='Enter 2FA Code:')
+                code = Entry(pinget)
+                submit = Button(pinget, text='Submit', command = lambda:[self.set_pin(code), pinget.destroy()])
+                pinget.bind('<Return>', lambda x:[self.set_pin(code), pinget.destroy()])
+                msg.pack(side = TOP)
+                code.pack()
+                submit.pack(side = BOTTOM)
+                pinget.mainloop()
+            case "Okta Push Notification":
+                pinget.destroy()
        
     #Sets 2FA code for retrieval    
     def set_pin(self, pin):
@@ -229,6 +257,12 @@ class credentials():
     #Fetches stored 2FA code
     def return_pin(self):
         return self.pin
+    
+    def set_verify_method(self, method):
+        self.verify_method = method
+        
+    def get_verify_method(self):
+        return self.verify_method
 
     #instantiates class
     def __init__(self):
@@ -240,6 +274,7 @@ class credentials():
         self.login_count = 0
         self.anonymous = False
         self.current_sem = False
+        self.verify_method = "Okta Push Notification"
         self.greeting_window(self.greeting, self.filename)
 
 #method to return appropriate value for term dropdown
@@ -284,106 +319,111 @@ def build_path(path, fullname):
 
 def build_files(path, driver, fullname):
     #scrape transcript for courses and semesters
-    wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
-    data = driver.find_elements(By.XPATH, "//table")
+    try:
+        wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
+        data = driver.find_elements(By.XPATH, "//table")
 
-    courses = []
-    semesters = []
-    #boolean flags to distinguish semesters
-    sem_start = sem_end = False
-    #used to determine if we reached current/future semesters
-    is_curr = False
-    #used to hold course as we build it from data
-    proto = ""
-    course_marker = False
-    
-    output = []
-
-    for i in data:
-        output += i.text.split('\n')
-
-    for line in output:
-        #Find each semester as we iterate through scraped data
-        #signifies the start of courses in progress
-        if re.search("Course\(s\) in progress", line) and not is_curr:
-            is_curr = True
-        if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates|Subject Course Campus Level Title Credit Hours Start and End Dates", line):
-            if sem_start:
-                #lets us know that we've reached the end of a previous semester
-                sem_end = True
-            #signifies the start of a new semester
-            sem_start = True
-        #if we are in a semester, find the courses
-        elif sem_start:
-            #add marker to course array to signify semesters
-            if sem_end:
-                courses.append("-")
-                sem_end = False
-            #append credits to course
-            if course_marker:
-                if re.search("[0-9]+.[0-9]{3}", line):
-                    course_marker = False
-                    for i in line.replace("\n", " ").split(" "):
-                        proto.append(i)
-                    course = proto.copy()
-                    #pop empty indices at beginning of course
-                    while not bool(course[0]):
-                        course.pop(0)
-                    #remove 'U' from courses
-                    if course[2] == 'U':
-                        course.pop(2)
-                    #remove unnecessary indices at end of course
-                    try:
-                        while re.search("[0-9]+.[0-9]{3}" ,course[-2]):
-                            course.pop()
-                    except IndexError as e:
-                        print(e)
-                        print(course)
-                        print(line)
-                        sys.exit()
-                    #append course to array and reset proto
-                    courses.append(course)
-                    #print(proto)
-                    proto.clear()
-                #check if we reached current/future semesters
-                else:
-                    for i in line.replace("\n", " ").split(" "):
-                        proto.append(i)
-            #find a course and store it to the holder array
-            elif re.search("[A-Z]{4}", line):
-                proto = line.replace("\n", " ").split(" ")
-                #Extra code to catch transfer courses and current semester courses, since their contents are stored in one line
-                if re.search("0.000$", line) or is_curr:
-                    course = proto.copy()
-                    #Add 'inprog' to current semester courses as they have no letter grade
-                    if is_curr:
-                        course.insert(-1, "inprog")
-                    #remove unnecessary indices at end of course
-                    else:
-                        course.pop()
-                    courses.append(course)
-                    proto.clear()
-                else:
-                    course_marker = True
-
-    #Append separator for final course structure
-    courses.append("-")
-    
-    data = driver.find_elements(By.CSS_SELECTOR, ".sub-heading.period-padding.ng-binding")
-    
-    output = []
-
-    for i in data:
-        output += i.text.split('\n')
+        courses = []
+        semesters = []
+        #boolean flags to distinguish semesters
+        sem_start = sem_end = False
+        #used to determine if we reached current/future semesters
+        is_curr = False
+        #used to hold course as we build it from data
+        proto = ""
+        course_marker = False
         
-    for line in output:
-        semesters.append(line)
-        semesters.append('-')
+        output = []
 
-    #print courses to file
-    create_file_path(fullname , path, "/courses.txt", "courses", courses)
-    #print semesters to file
-    create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
+        for i in data:
+            output += i.text.split('\n')
+
+        for line in output:
+            #Find each semester as we iterate through scraped data
+            #signifies the start of courses in progress
+            if re.search("Course\(s\) in progress", line) and not is_curr:
+                is_curr = True
+            if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates|Subject Course Campus Level Title Credit Hours Start and End Dates", line):
+                if sem_start:
+                    #lets us know that we've reached the end of a previous semester
+                    sem_end = True
+                #signifies the start of a new semester
+                sem_start = True
+            #if we are in a semester, find the courses
+            elif sem_start:
+                #add marker to course array to signify semesters
+                if sem_end:
+                    courses.append("-")
+                    sem_end = False
+                #append credits to course
+                if course_marker:
+                    if re.search("[0-9]+.[0-9]{3}", line):
+                        course_marker = False
+                        for i in line.replace("\n", " ").split(" "):
+                            proto.append(i)
+                        course = proto.copy()
+                        #pop empty indices at beginning of course
+                        while not bool(course[0]):
+                            course.pop(0)
+                        #remove 'U' from courses
+                        if course[2] == 'U':
+                            course.pop(2)
+                        #remove unnecessary indices at end of course
+                        try:
+                            while re.search("[0-9]+.[0-9]{3}" ,course[-2]):
+                                course.pop()
+                        except IndexError as e:
+                            print(e)
+                            print(course)
+                            print(line)
+                            sys.exit()
+                        #append course to array and reset proto
+                        courses.append(course)
+                        #print(proto)
+                        proto.clear()
+                    #check if we reached current/future semesters
+                    else:
+                        for i in line.replace("\n", " ").split(" "):
+                            proto.append(i)
+                #find a course and store it to the holder array
+                elif re.search("[A-Z]{4}", line):
+                    proto = line.replace("\n", " ").split(" ")
+                    #Extra code to catch transfer courses and current semester courses, since their contents are stored in one line
+                    if re.search("0.000$", line) or is_curr:
+                        course = proto.copy()
+                        #Add 'inprog' to current semester courses as they have no letter grade
+                        if is_curr:
+                            course.insert(-1, "inprog")
+                        #remove unnecessary indices at end of course
+                        else:
+                            course.pop()
+                        courses.append(course)
+                        proto.clear()
+                    else:
+                        course_marker = True
+
+        #Append separator for final course structure
+        courses.append("-")
+        
+        data = driver.find_elements(By.CSS_SELECTOR, ".sub-heading.period-padding.ng-binding")
+        
+        output = []
+
+        for i in data:
+            output += i.text.split('\n')
+            
+        for line in output:
+            semesters.append(line)
+            semesters.append('-')
+
+        #print courses to file
+        create_file_path(fullname , path, "/courses.txt", "courses", courses)
+        #print semesters to file
+        create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
+        
+        return True
+    except TimeoutException:
+        return False
         
 #method to create file to store data
 def create_file_path(fullname ,path, filename, file_type, array):
@@ -457,28 +497,75 @@ uid = driver.find_element(By.ID, "input28")
 uid.send_keys(username)
 driver.find_element(By.CSS_SELECTOR, ".button").click()
 
+wait = WebDriverWait(driver, 2)
+
 try:
-    wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='Select Password.']")))
-    driver.find_element(By.XPATH, "//a[@aria-label='Select Password.']").click()
+    wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Verify with something else")))
+    driver.find_element(By.LINK_TEXT, "Verify with something else").click()
 except TimeoutException:
     pass
 
-wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
-pwd = driver.find_element(By.XPATH, "//input[@type='password']")
-pwd.send_keys(password)
-driver.find_element(By.CSS_SELECTOR, ".button").click()
+wait = WebDriverWait(driver, 600)
 
-#Get 2FA code from user
-user.get_pin()
-pin = user.return_pin()
-wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='text']")))
-pin_entry = driver.find_element(By.XPATH, "//input[@type='text']")
-pin_entry.send_keys(pin)
+# Get authentication method from user
+auth_type = user.get_verify_method()
 
-driver.find_element(By.CSS_SELECTOR, ".button").click()
+match auth_type:
+    # Get 2FA code from Google Authenticator
+    case "Google Authenticator":
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(1) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(1) .button").click()
+        
+        user.get_pin()
+        pin = user.return_pin()
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'text']")))
+        pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
+        pin_entry.send_keys(pin)
+        driver.find_element(By.CSS_SELECTOR, ".button").click()
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
+        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
+        pwd.send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, ".button").click()
+    # 2FA Code from Okta Verify
+    case "Okta 2FA Code":
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
+        
+        user.get_pin()
+        pin = user.return_pin()
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'text']")))
+        pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
+        pin_entry.send_keys(pin)
+        driver.find_element(By.CSS_SELECTOR, ".button").click()
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
+        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
+        pwd.send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, ".button").click()
+    # Push Notification method from Okta Verify
+    case "Okta Push Notification":
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button").click()
+        user.get_pin()
+    # Currently not supported since this method still requires one of the above three
+    case "Password":
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button")))
+        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button").click()
+        
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
+        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
+        pwd.send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, ".button").click()
+    case _:
+        raise Exception("Error! authentication method does not match known values! (" + auth_type + ")")
 
 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']")))
 driver.find_element(By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']").click()
+
+wait = WebDriverWait(driver, 10)
 
 original_window = driver.current_window_handle
 
@@ -504,11 +591,29 @@ sem_flag = user.get_sem_flag()
 dt = datetime.now()
 timestamp = dt.strftime("%b") + "-" + str(dt.day) + "-" + str(dt.year) + "-" + str(dt.hour) + "-" + str(dt.minute) + "-" + str(dt.second)
 
+status = Tk()
+status_txt = StringVar()
+status_txt.set(f"(0/{len(vnums)})")
+status_msg = Label(status, textvariable = status_txt).pack()
+
+progress = Progressbar(status, orient = HORIZONTAL, length = 100, maximum = len(vnums), mode = 'determinate')
+
+def status_update(i):
+    progress['value'] = i
+    status_txt.set(f"{int(progress['value'])}/{len(vnums)} Students Processed")
+    #status_msg = Label(status, text = f"{int(progress['value'])}/{len(vnums)} Students Processed").pack()
+    progress.update_idletasks()
+    progress.update()
+
+progress.pack(pady = 10)
+#status.mainloop()
+
 itr = 0
 #crawl through banner until we get to student id
 index = 0
 first = True
 while index < len(vnums):
+    status_update(index)
     advisor = ""
     #requests student id and uses it to get to transcript
     wait.until(EC.visibility_of_element_located((By.ID, "s2id_select2-term")))
@@ -528,7 +633,7 @@ while index < len(vnums):
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
         except TimeoutException:
             print(f"Error! {vnums[index]} could not be found!")
-            error_vnums.append(vnums.pop(index))
+            error_vnums.append([vnums.pop(index), "Invalid V-Number"])
             continue
     wait = WebDriverWait(driver, 10)
     name = driver.find_element(By.CSS_SELECTOR, '.search-result.name')
@@ -569,9 +674,9 @@ while index < len(vnums):
 
     if not bool(advisor):
         advisor = "No Advisor Listed"
-    if not os.path.exists(os.path.join("advisors", advisor)):
+    """if not os.path.exists(os.path.join("advisors", advisor)):
         os.makedirs(os.path.join("advisors", advisor))
-        print("Created new advisor directory for " + advisor)
+        print("Created new advisor directory for " + advisor)"""
         
     print("Adding " + fullname[index] + " to advisor " + advisor)
     print("(student " + str(index + 1) + " of " + str(len(vnums)) + ")")
@@ -580,11 +685,23 @@ while index < len(vnums):
     if is_anonymous:
         path = "advisors/" + timestamp + "/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
-        build_files(path, driver, vnums[index].strip())
+        if (not build_files(path, driver, vnums[index].strip())):
+            error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
+            driver.close()
+            driver.switch_to.window(second_window)
+            driver.find_element(By.LINK_TEXT, "Advisee Search").click()
+            fullname.pop(index)
+            continue
     else:
         path = "advisors/" + timestamp + "/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
-        build_files(path, driver, fullname[index].strip())
+        if (not build_files(path, driver, fullname[index].strip())):
+            error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
+            driver.close()
+            driver.switch_to.window(second_window)
+            driver.find_element(By.LINK_TEXT, "Advisee Search").click()
+            fullname.pop(index)
+            continue
 
     driver.close()
     driver.switch_to.window(second_window)
@@ -594,6 +711,7 @@ while index < len(vnums):
 
 #Web driver is no longer needed
 driver.quit()
+status.quit()
 
 #--------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
 
