@@ -18,7 +18,7 @@ import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
 import preprocess
 
-version = "2.4.4"
+VERSION = "2.4.4"
 
 #Class to hold user login info for session
 class credentials():

@@ -11,54 +11,68 @@ from openpyxl.styles import Alignment
 import open_course_struct
 import sys
 
-#global variables for border styles
-top = Border(left = Side(style = 'thin'),
+#global values for border styles
+TOP = Border(left = Side(style = 'thin'),
               right = Side(style = 'thin'),
               top = Side(style = 'thick'),
               bottom = Side(style = 'thin'))
-top_left = Border(left = Side(style = 'thick'),
+TOP_LEFT = Border(left = Side(style = 'thick'),
               right = Side(style = 'thin'),
               top = Side(style = 'thick'),
               bottom = Side(style = 'thin'))
-top_right = Border(left = Side(style = 'thin'),
+TOP_RIGHT = Border(left = Side(style = 'thin'),
               right = Side(style = 'thick'),
               top = Side(style = 'thick'),
               bottom = Side(style = 'thin'))
-right = Border(left = Side(style = 'thin'),
+RIGHT = Border(left = Side(style = 'thin'),
               right = Side(style = 'thick'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thin'))
-bottom_right = Border(left = Side(style = 'thin'),
+BOTTOM_RIGHT = Border(left = Side(style = 'thin'),
               right = Side(style = 'thick'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thick'))
-bottom = Border(left = Side(style = 'thin'),
+BOTTOM = Border(left = Side(style = 'thin'),
               right = Side(style = 'thin'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thick'))
-bottom_left = Border(left = Side(style = 'thick'),
+BOTTOM_LEFT = Border(left = Side(style = 'thick'),
               right = Side(style = 'thin'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thick'))
-left = Border(left = Side(style = 'thick'),
+LEFT = Border(left = Side(style = 'thick'),
               right = Side(style = 'thin'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thin'))
-other = Border(left = Side(style = 'thin'),
+OTHER = Border(left = Side(style = 'thin'),
               right = Side(style = 'thin'),
               top = Side(style = 'thin'),
               bottom = Side(style = 'thin'))
-#global variables for cell background colors
-redFill = PatternFill('solid', fgColor = 'FF0000')
-greenFill = PatternFill('solid', fgColor = '00FF00')
-yellowFill = PatternFill('solid', fgColor = 'FFFF00')
-blueFill = PatternFill('solid', fgColor = '00BFFF')
-orangeFill = PatternFill('solid', fgColor = 'FCB900')
+#global values for cell background colors
+RED_FILL = PatternFill('solid', fgColor = 'FF0000')
+GREEN_FILL = PatternFill('solid', fgColor = '00FF00')
+YELLOW_FILL = PatternFill('solid', fgColor = 'FFFF00')
+BLUE_FILL = PatternFill('solid', fgColor = '00BFFF')
+ORANGE_FILL = PatternFill('solid', fgColor = 'FCB900')
+
+#values that constitute a passing grade
+PASSING_GRADES = ['A', 'B', 'C', 'S', 'TR', 'In progress']
+
+#dictionary that serves to map electives from teplate planning sheet to AutoAdvisor
+ELEC_MAP = {'HISTELEC1': 'HIST', 'SOCELEC1': 'SS', 'GLOELEC1': 'GS', 'LITELEC1': 'LIT',
+            'SCILEC1': 'SCI 1', 'SCILAB1': 'SCI 1 LAB', 'FREEELEC1': 'FREE 1', 'CSCIELEC3': 'CMS', 
+            'FREEELEC2': 'FREE 2', 'CSCIELEC1': 'CS 1', 'SCILEC2': 'SCI 2', 'SCILAB2': 'SCI 2 LAB', 
+            'CSCIELEC2': 'CS 2', 'MATHELEC1': 'MATH'}
+
+class ElecMapError(Exception):
+    def __init__(self, message, course):
+        self.course = course
+        super().__init__(f"{message} (course: {course})")
 
 #at least 8 csci courses, 60 credits, and csci 287 before 400-level csci courses
 #method to check if a course has a passing grade where a passing grade is 'C'
 def passing_grade(grade, sem, curr_sem):
-    if grade <= "C" or grade == "S" or grade == "TR" or grade == "In progress":
+    if grade in PASSING_GRADES:
         return True
     #If we reached this, then we reached a failing course somehow
     else:
@@ -355,34 +369,10 @@ def structure_dict_elems(semester):
 
 #map elective keys from planning sheet to elective keys in config file
 def map_elec(course):
-    if course == 'HISTELEC1':
-        return 'HIST'
-    if course == 'SOCELEC1':
-        return 'SS'
-    if course == 'GLOELEC1':
-        return 'GS'
-    if course == 'LITELEC1':
-        return 'LIT'
-    if course == 'SCILEC1':
-        return 'SCI 1'
-    if course == 'SCILAB1':
-        return 'SCI 1 LAB'
-    if course == 'FREEELEC1':
-        return 'FREE 1'
-    if course == 'CSCIELEC3':
-        return 'CMS'
-    if course == 'FREEELEC2':
-        return 'FREE 2'
-    if course == 'CSCIELEC1':
-        return 'CS 1'
-    if course == 'SCILEC2':
-        return 'SCI 2'
-    if course == 'SCILAB2':
-        return 'SCI 2 LAB'
-    if course == 'CSCIELEC2':
-        return 'CS 2'
-    if course == 'MATHELEC1':
-        return 'MATH'
+    if course in ELEC_MAP:
+        return ELEC_MAP[course]
+    else:
+        raise ElecMapError("Course does not have mapping with ELEC_MAP Keys!", course)
 
 #determines which color the cells will be colored
 def find_fill_type(is_complete, in_progress, is_open, is_valid):
@@ -391,18 +381,18 @@ def find_fill_type(is_complete, in_progress, is_open, is_valid):
         #for courses in progress, mark yellow
         if in_progress:
             if is_valid:
-                return yellowFill
+                return YELLOW_FILL
             else:
-                return orangeFill
+                return ORANGE_FILL
         #for completed courses, mark green
         else:
-            return greenFill
+            return GREEN_FILL
     #For courses the student is eligible for, mark blue
     elif is_open:
-        return blueFill
+        return BLUE_FILL
     #For all other courses, mark red
     else:
-        return redFill
+        return RED_FILL
     
 
 #Merges index columns and styles the cells
@@ -440,36 +430,36 @@ def format_cells(wb, ws, start, end, start_cell, end_cell, col_size):
             if i == 0:
                 #if first index, we are at the left border cell
                 if j == 0:
-                    cells[i][j].border = top_left
+                    cells[i][j].border = TOP_LEFT
                     #find which color to make the cell
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 #if last index, then we are at the right border cell
                 elif j+1 == row_size:
-                    cells[i][j].border = top_right
+                    cells[i][j].border = TOP_RIGHT
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif not row[j] == row[-1]:
-                    cells[i][j].border = top
+                    cells[i][j].border = TOP
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             #if last index, then we are at the bottom border cell
             elif i+1 == col_size:
                 if j == 0:
-                    cells[i][j].border = bottom_left
+                    cells[i][j].border = BOTTOM_LEFT
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif j+1 == row_size:
-                    cells[i][j].border = bottom_right
+                    cells[i][j].border = BOTTOM_RIGHT
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
                 elif not row[j] == row[-1]:
-                    cells[i][j].border = bottom
+                    cells[i][j].border = BOTTOM
                     cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             elif j == 0:
-                cells[i][j].border = left
+                cells[i][j].border = LEFT
                 cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             elif j+1 == row_size:
-                cells[i][j].border = right
+                cells[i][j].border = RIGHT
                 cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             #for inner cells, make border thin
             elif not row[j] == row[-1]:
-                cells[i][j].border = other
+                cells[i][j].border = OTHER
                 cells[i][j].fill = find_fill_type(is_complete, in_progress, is_open, is_valid)
             j += 1
             if j == len(row):
@@ -899,27 +889,27 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
                 if i == 0:
                     #if first index, we are at the left border cell
                     if j == 0:
-                        cells[i][j].border = top_left
+                        cells[i][j].border = TOP_LEFT
                     #if last index, then we are at the right border cell
                     elif j+1 == row_size:
-                        cells[i][j].border = top_right
+                        cells[i][j].border = TOP_RIGHT
                     else:
-                        cells[i][j].border = top
+                        cells[i][j].border = TOP
                 #if last index, then we are at the bottom border cell
                 elif i+1 == col_size:
                     if j == 0:
-                        cells[i][j].border = bottom_left
+                        cells[i][j].border = BOTTOM_LEFT
                     elif j+1 == row_size:
-                        cells[i][j].border = bottom_right
+                        cells[i][j].border = BOTTOM_RIGHT
                     else:
-                        cells[i][j].border = bottom
+                        cells[i][j].border = BOTTOM
                 elif j == 0:
-                    cells[i][j].border = left
+                    cells[i][j].border = LEFT
                 elif j+1 == row_size:
-                    cells[i][j].border = right
+                    cells[i][j].border = RIGHT
                 #for inner cells, make border thin
                 else:
-                    cells[i][j].border = other
+                    cells[i][j].border = OTHER
                 j += 1
             i += 1
 
@@ -949,10 +939,8 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
         try:
             cell.value = float(cell.value)
             cell.number_format = "0.000"
-            print(cell.value)
-            print(type(cell.value))
         except (ValueError, TypeError) as e:
-            print(e)
+            pass
         
     #save changes to excel file
     wb.save(path)

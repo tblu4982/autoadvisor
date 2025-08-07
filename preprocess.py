@@ -3,7 +3,7 @@ import re
 import os
 
 def find_advisor(name, config_file, timestamp):
-    advisor_path = "advisors/"
+    advisor_path = "advisors/" + timestamp
     advisors = [f for f in os.listdir(advisor_path)]
     for advisor in advisors:
         #print(advisor)
@@ -28,7 +28,7 @@ def main(fullname, config_file, vnums, names, sem_flag, timestamp):
             if len(line) > 2:
                 line=line.strip()
                 sem = ''
-                print(line)
+                #print(line)
                 if re.search('Term : Spring', line):
                     sem = 'SP' + line[-2:]
                 elif re.search('Term : Summer', line):
