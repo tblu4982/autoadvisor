@@ -369,8 +369,11 @@ def structure_dict_elems(semester):
 
 #map elective keys from planning sheet to elective keys in config file
 def map_elec(course):
+    expression = "EXTRA*"
     if course in ELEC_MAP:
         return ELEC_MAP[course]
+    elif re.search(expression, course):
+        pass
     else:
         raise ElecMapError("Course does not have mapping with ELEC_MAP Keys!", course)
 
