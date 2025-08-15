@@ -1,4 +1,4 @@
-*Legacy code for old version of AutoAdvisor that supported Banner 8
+*Legacy code for old version of AutoAdvisor that supported Banner 8, This branch can no longer be modified
 
 Read the User Guide for installation instructions
 
