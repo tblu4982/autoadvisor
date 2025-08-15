@@ -1,3 +1,5 @@
+*Legacy code for old version of AutoAdvisor that supported Banner 8
+
 Read the User Guide for installation instructions
 
 Store ALL python files in the same file directory.
