@@ -497,7 +497,7 @@ uid = driver.find_element(By.ID, "input28")
 uid.send_keys(username)
 driver.find_element(By.CSS_SELECTOR, ".button").click()
 
-wait = WebDriverWait(driver, 2)
+wait = WebDriverWait(driver, 5)
 
 try:
     wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Verify with something else")))
@@ -522,12 +522,6 @@ match auth_type:
         pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
         pin_entry.send_keys(pin)
         driver.find_element(By.CSS_SELECTOR, ".button").click()
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
-        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
-        pwd.send_keys(password)
-        driver.find_element(By.CSS_SELECTOR, ".button").click()
     # 2FA Code from Okta Verify
     case "Okta 2FA Code":
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
@@ -538,12 +532,6 @@ match auth_type:
         wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'text']")))
         pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
         pin_entry.send_keys(pin)
-        driver.find_element(By.CSS_SELECTOR, ".button").click()
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
-        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
-        pwd.send_keys(password)
         driver.find_element(By.CSS_SELECTOR, ".button").click()
     # Push Notification method from Okta Verify
     case "Okta Push Notification":
@@ -556,10 +544,7 @@ match auth_type:
 wait = WebDriverWait(driver, 10)
 
 try:
-    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button")))
-    driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button").click()
-
-    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))    
     pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
     pwd.send_keys(password)
     driver.find_element(By.CSS_SELECTOR, ".button").click()
