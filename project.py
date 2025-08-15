@@ -18,7 +18,7 @@ import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
 import preprocess
 
-VERSION = "2.4.4"
+VERSION = "2.4.5"
 
 #Class to hold user login info for session
 class credentials():
@@ -550,17 +550,21 @@ match auth_type:
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button")))
         driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button").click()
         user.get_pin()
-    # Currently not supported since this method still requires one of the above three
-    case "Password":
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button").click()
-        
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
-        pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
-        pwd.send_keys(password)
-        driver.find_element(By.CSS_SELECTOR, ".button").click()
     case _:
         raise Exception("Error! authentication method does not match known values! (" + auth_type + ")")
+
+wait = WebDriverWait(driver, 10)
+
+try:
+    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button")))
+    driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(4) .button").click()
+
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))
+    pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
+    pwd.send_keys(password)
+    driver.find_element(By.CSS_SELECTOR, ".button").click()
+except TimeoutException:
+    pass
 
 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']")))
 driver.find_element(By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']").click()
