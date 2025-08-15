@@ -522,6 +522,7 @@ match auth_type:
         pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
         pin_entry.send_keys(pin)
         driver.find_element(By.CSS_SELECTOR, ".button").click()
+        wait = WebDriverWait(driver, 10)
     # 2FA Code from Okta Verify
     case "Okta 2FA Code":
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
@@ -533,6 +534,7 @@ match auth_type:
         pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
         pin_entry.send_keys(pin)
         driver.find_element(By.CSS_SELECTOR, ".button").click()
+        wait = WebDriverWait(driver, 10)
     # Push Notification method from Okta Verify
     case "Okta Push Notification":
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button")))
@@ -540,8 +542,6 @@ match auth_type:
         user.get_pin()
     case _:
         raise Exception("Error! authentication method does not match known values! (" + auth_type + ")")
-
-wait = WebDriverWait(driver, 10)
 
 try:
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))    
