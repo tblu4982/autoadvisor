@@ -6,3 +6,6 @@ advisors/
 
 # Ignore vnums.txt
 vnums.txt
+
+# Ignore webdriver
+msedgedriver.exe

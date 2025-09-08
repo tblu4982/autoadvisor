@@ -98,7 +98,6 @@ class credentials():
         pwd = Entry(login, show ="*", width = 25)
         option = StringVar(value=self.get_verify_method())
         option.trace_add("write", on_option_value_change)
-        print(self.get_verify_method())
         auth_menu = OptionMenu(login, option, self.get_verify_method(), *auth_options)
         #when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), self.set_verify_method(option.get()), login.destroy()])
@@ -317,7 +316,7 @@ def build_path(path, fullname):
     else:
         sys.exit("An unexpected error has occurred: Unable to locate student's name!")
 
-def build_files(path, driver, fullname):
+def build_files(path, driver, fullname, wait):
     #scrape transcript for courses and semesters
     try:
         wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
@@ -509,39 +508,23 @@ wait = WebDriverWait(driver, 600)
 
 # Get authentication method from user
 auth_type = user.get_verify_method()
-
-match auth_type:
-    # Get 2FA code from Google Authenticator
-    case "Google Authenticator":
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(1) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(1) .button").click()
-        
-        user.get_pin()
-        pin = user.return_pin()
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'text']")))
-        pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
-        pin_entry.send_keys(pin)
-        driver.find_element(By.CSS_SELECTOR, ".button").click()
-        wait = WebDriverWait(driver, 10)
-    # 2FA Code from Okta Verify
-    case "Okta 2FA Code":
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(2) .button").click()
-        
-        user.get_pin()
-        pin = user.return_pin()
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'text']")))
-        pin_entry = driver.find_element(By.XPATH, "//input[@type = 'text']")
-        pin_entry.send_keys(pin)
-        driver.find_element(By.CSS_SELECTOR, ".button").click()
-        wait = WebDriverWait(driver, 10)
-    # Push Notification method from Okta Verify
-    case "Okta Push Notification":
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button")))
-        driver.find_element(By.CSS_SELECTOR, ".authenticator-row:nth-child(3) .button").click()
-        user.get_pin()
-    case _:
-        raise Exception("Error! authentication method does not match known values! (" + auth_type + ")")
+test = driver.find_elements(By.XPATH, "//div[@class = 'authenticator-row clearfix']")
+for t in test:
+    button = t.find_element(By.CSS_SELECTOR, "a[data-se='button']")
+    target = button.get_attribute("aria-label")
+    match auth_type:
+        case "Google Authenticator":
+            if(target == "Select Google Authenticator."):
+                button.click()
+                break
+        case "Okta 2FA Code":
+            if(target == "Select to enter a code from the Okta Verify app."):
+                button.click()
+                break
+        case "Okta Push Notification":
+            if(target == "Select to get a push notification to the Okta Verify app."):
+                button.click()
+                break
 
 try:
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))    
@@ -674,7 +657,7 @@ while index < len(vnums):
     if is_anonymous:
         path = "advisors/" + timestamp + "/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
-        if (not build_files(path, driver, vnums[index].strip())):
+        if (not build_files(path, driver, vnums[index].strip()), wait):
             error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
             driver.close()
             driver.switch_to.window(second_window)
@@ -684,7 +667,7 @@ while index < len(vnums):
     else:
         path = "advisors/" + timestamp + "/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
-        if (not build_files(path, driver, fullname[index].strip())):
+        if (not build_files(path, driver, fullname[index].strip()), wait):
             error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
             driver.close()
             driver.switch_to.window(second_window)

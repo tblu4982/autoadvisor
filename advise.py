@@ -97,7 +97,7 @@ def get_curr_sem():
     #returns the correct semester based on datetime values
     if month >= 1:
         if month >= 5:
-            if month <= 8:
+            if month >= 8:
                 if month == 12:
                     return "WI" + str(year)[-2:]
                 else:
@@ -645,6 +645,7 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
         for key in keys:
             if not bool(elec_stack[key][2]):
                 if check_course(course, key):
+                    credit = float(unused[course][3])
                     elec_stack[key][0] = unused[course][0]
                     elec_stack[key][5] = elec_stack[key][1] + ' satisfied'
                     elec_stack[key][1] = unused[course][1]
@@ -672,6 +673,7 @@ def main(courses, name, config_file, fullname, vnum, advisor, sem_flag, timestam
                     if not bool(elec_course):
                         #check if course is a free elective
                         if course_type == 'free':
+                            credit = float(unused[course][3])
                             elec_stack[key][0] = unused[course][0]
                             elec_stack[key][5] = elec_stack[key][1] + ' satisfied'
                             elec_stack[key][1] = unused[course][1]
