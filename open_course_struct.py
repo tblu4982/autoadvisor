@@ -15,7 +15,7 @@ class configure_file():
         return self.frs1, self.frs2, self.sos1, self.sos2, \
                self.jrs1, self.jrs2, self.srs1, self.srs2
 
-    def set_config(self, config_file):
+    def set_config(self):
         proto = []
 
         #get course structure from excel spreadsheet
@@ -113,4 +113,4 @@ class configure_file():
         self.jrs2 = {}
         self.srs1 = {}
         self.srs2 = {}
-        self.set_config(self.config_file)
+        self.set_config()

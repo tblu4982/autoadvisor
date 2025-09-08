@@ -18,7 +18,7 @@ import re #used for regular expressions
 import sys #used to stop execution under certain circumstances
 import preprocess
 
-VERSION = "2.4.5"
+VERSION = "2.4.6"
 
 #Class to hold user login info for session
 class credentials():
@@ -316,7 +316,7 @@ def build_path(path, fullname):
     else:
         sys.exit("An unexpected error has occurred: Unable to locate student's name!")
 
-def build_files(path, driver, fullname, wait):
+def build_files(path, driver, fullname):
     #scrape transcript for courses and semesters
     try:
         wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
@@ -526,6 +526,8 @@ for t in test:
                 button.click()
                 break
 
+wait = WebDriverWait(driver, 10)
+
 try:
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type = 'password']")))    
     pwd = driver.find_element(By.XPATH, "//input[@type = 'password']")
@@ -536,8 +538,6 @@ except TimeoutException:
 
 wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']")))
 driver.find_element(By.XPATH, "//a[@aria-label='launch app Banner Faculty Self Service 9']").click()
-
-wait = WebDriverWait(driver, 10)
 
 original_window = driver.current_window_handle
 
@@ -657,7 +657,7 @@ while index < len(vnums):
     if is_anonymous:
         path = "advisors/" + timestamp + "/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
-        if (not build_files(path, driver, vnums[index].strip()), wait):
+        if (not build_files(path, driver, vnums[index].strip())):
             error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
             driver.close()
             driver.switch_to.window(second_window)
@@ -667,7 +667,7 @@ while index < len(vnums):
     else:
         path = "advisors/" + timestamp + "/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
-        if (not build_files(path, driver, fullname[index].strip()), wait):
+        if (not build_files(path, driver, fullname[index].strip())):
             error_vnums.append([vnums.pop(index), "Transcript missing or unable to parse"])
             driver.close()
             driver.switch_to.window(second_window)
