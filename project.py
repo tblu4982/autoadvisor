@@ -17,8 +17,6 @@ import os  # used for read/write to files
 import re  # used for regular expressions
 import sys  # used to stop execution under certain circumstances
 import preprocess
-
-# NEW: imports for consolidated write-once workbook
 from collections import defaultdict
 from openpyxl import Workbook
 
@@ -672,7 +670,7 @@ while index < len(vnums):
             fullname.pop(index)
             continue
 
-        # NEW: record successful student for consolidated workbook (anonymous -> use V-number as name)
+        # record successful student for consolidated workbook (anonymous -> use V-number as name)
         advisor_dict[advisor].append({
             "name": vnums[index].strip(),
             "vnum": vnums[index].strip()
@@ -689,7 +687,6 @@ while index < len(vnums):
             fullname.pop(index)
             continue
 
-        # NEW: record successful student for consolidated workbook (named)
         advisor_dict[advisor].append({
             "name": fullname[index].strip(),
             "vnum": vnums[index].strip()
@@ -711,9 +708,8 @@ if is_anonymous:
     preprocess.main(vnums, config_file, vnums, names, sem_flag, timestamp)
 else:
     preprocess.main(fullname, config_file, vnums, names, sem_flag, timestamp)
-print('Program complete! Check files for advisory report(s).')
 
-# NEW ---- WRITE ONCE: build consolidated student_list.xlsx under advisors/<timestamp>/ ----
+# build consolidated student_list.xlsx under advisors/<timestamp>/ ----
 def write_consolidated_student_list(root_dir, advisor_dict):
     """
     Create a single workbook (student_list.xlsx) with one sheet per advisor.
@@ -743,7 +739,7 @@ def write_consolidated_student_list(root_dir, advisor_dict):
             ws.column_dimensions["A"].width = longest_name + 4
 
     out_path = os.path.join(root_dir, "student_list.xlsx")
-    # ensure root directory exists (it should by now, but just in case)
+    # ensure root directory exists
     os.makedirs(root_dir, exist_ok=True)
     wb.save(out_path)
     print(f"Wrote consolidated workbook: {out_path}")
@@ -758,3 +754,5 @@ if len(error_vnums) > 0:
         outfile.write("AutoAdvisor has encountered an issue parsing the following V-Number(s):\n")
         for vnum in error_vnums:
             outfile.write(f"{vnum}\n")
+
+print('Program complete! Check files for advisory report(s).')
