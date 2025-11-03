@@ -9,3 +9,5 @@ vnums.txt
 
 # Ignore webdriver
 msedgedriver.exe
+
+separator.py

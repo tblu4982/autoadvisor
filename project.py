@@ -7,22 +7,26 @@ from selenium.common.exceptions import NoSuchElementException, SessionNotCreated
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-import tkinter #GUI
+import tkinter  # GUI
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from datetime import datetime
-import os #used for read/write to files
-import re #used for regular expressions
-import sys #used to stop execution under certain circumstances
+import os  # used for read/write to files
+import re  # used for regular expressions
+import sys  # used to stop execution under certain circumstances
 import preprocess
 
-VERSION = "2.4.6"
+# NEW: imports for consolidated write-once workbook
+from collections import defaultdict
+from openpyxl import Workbook
 
-#Class to hold user login info for session
+VERSION = "2.5.0"
+
+# Class to hold user login info for session
 class credentials():
-    #Opens a window and prompts user to select config file and to log in
+    # Opens a window and prompts user to select config file and to log in
     def greeting_window (self, greeting, filename):
         portal = Tk()
         #portal.geometry("200x90")
@@ -31,13 +35,13 @@ class credentials():
         is_current_sem = BooleanVar(portal, value = self.current_sem)
         welcome = Label(portal, text = greeting)
         portal.after(1, lambda: portal.focus_force())
-        #if no configuration file is selected, prompt user for config file
+        # if no configuration file is selected, prompt user for config file
         if len(filename) == 0 or not re.search('.xlsx$', filename):
             config = Button(portal, text="Set Configuration File", command = lambda:[portal.destroy(), self.set_config()])
             portal.bind('<Return>', lambda x:[portal.destroy(), self.set_config()])
             welcome.pack(side = TOP)
             config.pack(side = BOTTOM)
-        #if a config file has be selected, prompt user to log in
+        # if a config file has be selected, prompt user to log in
         else:
             login = Button(portal, text="Log In", command = lambda:[portal.destroy(), self.click_login()])
             config = Button(portal, text="Change Configuration File", command = lambda:[portal.destroy(), self.set_config()])
@@ -69,21 +73,21 @@ class credentials():
     def get_sem_flag(self):
         return self.current_sem
 
-    #function that grabs file path of config file
+    # function that grabs file path of config file
     def set_config(self):
         file_name = askopenfilename(title = 'Select Config File', filetypes = [('Excel Files','*.xlsx')])
         self.filename = file_name
         self.greeting_window(self.greeting, self.filename)               
 
-    #function that returns config file path
+    # function that returns config file path
     def get_config(self):
         return self.filename
 
-    #method to grab student login info
+    # method to grab student login info
     def click_login(self):
         def on_option_value_change(*args):
             self.set_verify_method(option.get())
-        #opens a window to grab student login info
+        # opens a window to grab student login info
         login = Tk()
         #login.geometry("200x90")
         login.title("Auto Advisor: Login")
@@ -99,7 +103,7 @@ class credentials():
         option = StringVar(value=self.get_verify_method())
         option.trace_add("write", on_option_value_change)
         auth_menu = OptionMenu(login, option, self.get_verify_method(), *auth_options)
-        #when submit button is clicked, it sends credentials to Banner Portal
+        # when submit button is clicked, it sends credentials to Banner Portal
         submit = Button(login, text='Submit', command = lambda:[self.set_credentials(uid, pwd), self.set_verify_method(option.get()), login.destroy()])
         back = Button(login, text='Return', command = lambda:[login.destroy(), self.greeting_window(self.greeting, self.filename)])
         login.bind('<Return>', lambda x:[self.set_credentials(uid, pwd), login.destroy()])
@@ -110,17 +114,17 @@ class credentials():
         submit.grid(row = 4, column = 1)
         back.grid(row = 4, column = 2)
         
-    #sets user's login info
+    # sets user's login info
     def set_credentials(self, uid, pwd):
         self.username = uid.get() + "@vsu.edu"
         self.password = pwd.get()
         
-    #returns login info
+    # returns login info
     def get_credentials(self):
         return self.username, self.password
 
-    #---LEGACY CODE! Considering removal!!!
-    #warns the user that they have failed to log in 3 times
+    # ---LEGACY CODE! Considering removal!!!
+    # warns the user that they have failed to log in 3 times
     def login_warning(self):
         warn = Tk()
         #warn.geometry("200x90")
@@ -133,8 +137,8 @@ class credentials():
         back.pack(side = TOP)
         warn.mainloop()
 
-    #---LEGACY CODE! Considering removal!!!
-    #terminates the program if user fails to log in 4 times
+    # ---LEGACY CODE! Considering removal!!!
+    # terminates the program if user fails to log in 4 times
     def login_timeout(self):
         terminate = Tk()
         #terminate.geometry("200x90")
@@ -147,8 +151,8 @@ class credentials():
         end.pack(side = TOP)
         terminate.mainloop()
 
-    #---LEGACY CODE! Consider modifying!!!
-    #method that prompts user to correct invalid login info
+    # ---LEGACY CODE! Consider modifying!!!
+    # method that prompts user to correct invalid login info
     def invalid_creds(self):
         self.greeting = 'Invalid login credentials!'
         self.login_count += 1
@@ -159,8 +163,8 @@ class credentials():
         else:
             self.login_timeout()
 
-    #---LEGACY CODE, no longer functional. Consider Removing!!!
-    #method that warns the user when student login credentials are entered
+    # ---LEGACY CODE, no longer functional. Consider Removing!!!
+    # method that warns the user when student login credentials are entered
     def student_detected(self):
         window = Tk()
         #window.geometry("200x50")
@@ -173,13 +177,13 @@ class credentials():
         ok_btn.pack(side = BOTTOM)
         window.mainloop()
 
-    #function that grabs list of v-numbers from a text file
+    # function that grabs list of v-numbers from a text file
     def get_vnums(self):
         vnums = []
         while True:
-            #get path of text file
+            # get path of text file
             file_name = askopenfilename(title = 'Select vnums File', filetypes = [('Text Files', '*.txt')])
-            #if no file is selected, prompt the user to select a file
+            # if no file is selected, prompt the user to select a file
             if len(file_name) == 0:
                     window = Tk()
                     window.geometry("200x70")
@@ -193,7 +197,7 @@ class credentials():
                     ok_btn.pack(side = BOTTOM)
                     cancel_btn.pack(side = BOTTOM)
                     window.mainloop()
-            #if a text file is selected, grab v-numbers from it
+            # if a text file is selected, grab v-numbers from it
             else:
                 self.filename = file_name
                 f1 = open(file_name)
@@ -202,11 +206,11 @@ class credentials():
                     if bool(vnum):
                         vnums.append(vnum)
                 f1.close()
-                #return list of v-numbers
+                # return list of v-numbers
                 return vnums
 
-    #UNTESTED CODE!
-    #Warns the user if Edge webdriver is not installed or up to date
+    # UNTESTED CODE!
+    # Warns the user if Edge webdriver is not installed or up to date
     def update_webdriver(self):
         update = Tk()
         #update.geometry('200x90')
@@ -219,7 +223,7 @@ class credentials():
         ok_btn.pack(side = BOTTOM)
         update.mainloop()
     
-    #Gets 2FA input from user    
+    # Gets 2FA input from user    
     def get_pin(self):
         pinget = Tk()
         auth_method = self.get_verify_method()
@@ -249,11 +253,11 @@ class credentials():
             case "Okta Push Notification":
                 pinget.destroy()
        
-    #Sets 2FA code for retrieval    
+    # Sets 2FA code for retrieval    
     def set_pin(self, pin):
         self.pin = pin.get()
     
-    #Fetches stored 2FA code
+    # Fetches stored 2FA code
     def return_pin(self):
         return self.pin
     
@@ -263,7 +267,7 @@ class credentials():
     def get_verify_method(self):
         return self.verify_method
 
-    #instantiates class
+    # instantiates class
     def __init__(self):
         self.username = ""
         self.password = ""
@@ -276,20 +280,20 @@ class credentials():
         self.verify_method = "Okta Push Notification"
         self.greeting_window(self.greeting, self.filename)
 
-#method to return appropriate value for term dropdown
+# method to return appropriate value for term dropdown
 def get_timecode():
-    #get current month and year
+    # get current month and year
     month = datetime.now().month
     year = str(datetime.now().year)
-    #change month to string
+    # change month to string
     if month >= 1:
-        #set month to "01" if month is between 1 and 4
+        # set month to "01" if month is between 1 and 4
         if month >= 5:
-            #set month to "05" if month is between 5 and 7
+            # set month to "05" if month is between 5 and 7
             if month >= 8:
-                #set month to "08" if month is between 8 and 11
+                # set month to "08" if month is between 8 and 11
                 if month == 12:
-                    #change month to string if month is 12
+                    # change month to string if month is 12
                     month = "12"
                 else:
                     month = "08"
@@ -297,14 +301,14 @@ def get_timecode():
                 month = "05"
         else:
             month = "01"
-    #return year and month to use as value for dropdown selector
+    # return year and month to use as value for dropdown selector
     return year + month
 
 def build_path(path, fullname):
-    #create folder using student name
-    #check if name has been established
+    # create folder using student name
+    # check if name has been established
     if bool(fullname):
-        #search to see if student folder already exists
+        # search to see if student folder already exists
         if not os.path.exists(path):
             os.makedirs(path)
             if os.path.exists(path):
@@ -317,18 +321,18 @@ def build_path(path, fullname):
         sys.exit("An unexpected error has occurred: Unable to locate student's name!")
 
 def build_files(path, driver, fullname):
-    #scrape transcript for courses and semesters
+    # scrape transcript for courses and semesters
     try:
         wait.until(EC.visibility_of_all_elements_located((By.XPATH, "//table")))
         data = driver.find_elements(By.XPATH, "//table")
 
         courses = []
         semesters = []
-        #boolean flags to distinguish semesters
+        # boolean flags to distinguish semesters
         sem_start = sem_end = False
-        #used to determine if we reached current/future semesters
+        # used to determine if we reached current/future semesters
         is_curr = False
-        #used to hold course as we build it from data
+        # used to hold course as we build it from data
         proto = ""
         course_marker = False
         
@@ -338,36 +342,36 @@ def build_files(path, driver, fullname):
             output += i.text.split('\n')
 
         for line in output:
-            #Find each semester as we iterate through scraped data
-            #signifies the start of courses in progress
+            # Find each semester as we iterate through scraped data
+            # signifies the start of courses in progress
             if re.search("Course\(s\) in progress", line) and not is_curr:
                 is_curr = True
             if re.search("Subject Course Level Title Grade Credit Hours Quality Points Start and End Dates R|Subject Course Title Grade Credit hours Quality points R|Subject Course Level Title Credit Hours Start and End Dates|Subject Course Campus Level Title Credit Hours Start and End Dates", line):
                 if sem_start:
-                    #lets us know that we've reached the end of a previous semester
+                    # lets us know that we've reached the end of a previous semester
                     sem_end = True
-                #signifies the start of a new semester
+                # signifies the start of a new semester
                 sem_start = True
-            #if we are in a semester, find the courses
+            # if we are in a semester, find the courses
             elif sem_start:
-                #add marker to course array to signify semesters
+                # add marker to course array to signify semesters
                 if sem_end:
                     courses.append("-")
                     sem_end = False
-                #append credits to course
+                # append credits to course
                 if course_marker:
                     if re.search("[0-9]+.[0-9]{3}", line):
                         course_marker = False
                         for i in line.replace("\n", " ").split(" "):
                             proto.append(i)
                         course = proto.copy()
-                        #pop empty indices at beginning of course
+                        # pop empty indices at beginning of course
                         while not bool(course[0]):
                             course.pop(0)
-                        #remove 'U' from courses
+                        # remove 'U' from courses
                         if course[2] == 'U':
                             course.pop(2)
-                        #remove unnecessary indices at end of course
+                        # remove unnecessary indices at end of course
                         try:
                             while re.search("[0-9]+.[0-9]{3}" ,course[-2]):
                                 course.pop()
@@ -376,24 +380,24 @@ def build_files(path, driver, fullname):
                             print(course)
                             print(line)
                             sys.exit()
-                        #append course to array and reset proto
+                        # append course to array and reset proto
                         courses.append(course)
                         #print(proto)
                         proto.clear()
-                    #check if we reached current/future semesters
+                    # check if we reached current/future semesters
                     else:
                         for i in line.replace("\n", " ").split(" "):
                             proto.append(i)
-                #find a course and store it to the holder array
+                # find a course and store it to the holder array
                 elif re.search("[A-Z]{4}", line):
                     proto = line.replace("\n", " ").split(" ")
-                    #Extra code to catch transfer courses and current semester courses, since their contents are stored in one line
+                    # Extra code to catch transfer courses and current semester courses, since their contents are stored in one line
                     if re.search("0.000$", line) or is_curr:
                         course = proto.copy()
-                        #Add 'inprog' to current semester courses as they have no letter grade
+                        # Add 'inprog' to current semester courses as they have no letter grade
                         if is_curr:
                             course.insert(-1, "inprog")
-                        #remove unnecessary indices at end of course
+                        # remove unnecessary indices at end of course
                         else:
                             course.pop()
                         courses.append(course)
@@ -401,7 +405,7 @@ def build_files(path, driver, fullname):
                     else:
                         course_marker = True
 
-        #Append separator for final course structure
+        # Append separator for final course structure
         courses.append("-")
         
         data = driver.find_elements(By.CSS_SELECTOR, ".sub-heading.period-padding.ng-binding")
@@ -415,24 +419,24 @@ def build_files(path, driver, fullname):
             semesters.append(line)
             semesters.append('-')
 
-        #print courses to file
+        # print courses to file
         create_file_path(fullname , path, "/courses.txt", "courses", courses)
-        #print semesters to file
+        # print semesters to file
         create_file_path(fullname , path, "/semesters.txt", "semesters", semesters)
         
         return True
     except TimeoutException:
         return False
         
-#method to create file to store data
+# method to create file to store data
 def create_file_path(fullname ,path, filename, file_type, array):
-    #check if file directory exists
+    # check if file directory exists
     if os.path.exists(path):
-        #if folder exists, check if file already exists
+        # if folder exists, check if file already exists
         file_path = path + filename
-        #if file exists, overwrite it
+        # if file exists, overwrite it
         if os.path.exists(file_path):
-            #remove old file, then create new file
+            # remove old file, then create new file
             print("Overwriting " + file_type + " file for " + fullname + "...")
             os.remove(file_path)
             with open(file_path, 'w') as target_file:
@@ -445,7 +449,7 @@ def create_file_path(fullname ,path, filename, file_type, array):
                     for line in array:
                         target_file.write(line + "\n")
         else:
-            #create new file
+            # create new file
             print("Creating " + file_type + " file for " + fullname + "...")
             with open(file_path, 'w') as target_file:
                 if file_type == "courses":
@@ -459,12 +463,12 @@ def create_file_path(fullname ,path, filename, file_type, array):
     else:
         print("Error! Folder path for " + fullname + " does not exist!")
 
-#Gets user login credentials
+# Gets user login credentials
 user = credentials()
 
 try:
     username, password = user.get_credentials()
-#Exception Handling that closes program if tkinter box is closed prematurely
+    # Exception Handling that closes program if tkinter box is closed prematurely
     if not bool(username) or not bool(password):
         sys.exit("Program Terminated!")
 except AttributeError:
@@ -472,25 +476,25 @@ except AttributeError:
 
 config_file = user.get_config()
 
-#--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
-#May be relevant: SessionNotCreatedException
+# --------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
+# May be relevant: SessionNotCreatedException
 try:
     #driver = webdriver.Edge(options = options)
     driver = webdriver.Edge()
     driver.get('https://login.vsu.edu')
 except SessionNotCreatedException:
     user.update_webdriver()
-#--------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
+# --------ADD A CHECK TO SEE IF WEBDRIVER IS CURRENT VERSION--------
 
 wait = WebDriverWait(driver, 10)
 
 vnums = []
 is_logged = False
 
-#Create loop to allow user to login with multiple attempts
+# Create loop to allow user to login with multiple attempts
 username, password = user.get_credentials()
     
-#attempt to log in
+# attempt to log in
 wait.until(EC.visibility_of_element_located((By.ID, "input28")))
 uid = driver.find_element(By.ID, "input28")
 uid.send_keys(username)
@@ -552,7 +556,7 @@ vnums = user.get_vnums()
 wait.until(EC.title_is("Faculty Services Dashboard"))
 driver.find_element(By.LINK_TEXT, "Advising Student Profile").click()
 
-#Used to hold student names
+# Used to hold student names
 fullname = []
 names = []
 error_vnums = []
@@ -580,22 +584,25 @@ def status_update(i):
 progress.pack(pady = 10)
 #status.mainloop()
 
+# NEW: collect students per advisor for consolidated write-once workbook
+advisor_dict = defaultdict(list)  # { advisor: [ {"name": <str>, "vnum": <str>} ] }
+
 itr = 0
-#crawl through banner until we get to student id
+# crawl through banner until we get to student id
 index = 0
 first = True
 while index < len(vnums):
     status_update(index)
     advisor = ""
-    #requests student id and uses it to get to transcript
+    # requests student id and uses it to get to transcript
     wait.until(EC.visibility_of_element_located((By.ID, "s2id_select2-term")))
     sid = driver.find_element(By.ID, "idSearchInput")
     action = ActionChains(driver).send_keys_to_element(sid, vnums[index]).perform()
     wait = WebDriverWait(driver, 1)
-    #Additional crawling logic if we've reached the last vnum in list
+    # Additional crawling logic if we've reached the last vnum in list
     #if index == len(vnums):
         #driver.find_element(By.XPATH, "//input[@type='submit' and @value='Submit']").submit()
-        #gets student name
+        # gets student name
     #try:
     try:
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.search-result.name')))
@@ -620,7 +627,7 @@ while index < len(vnums):
         error_vnums.append(vnums.pop(index))
         continue
 
-    #crawl webpage to academic transcript
+    # crawl webpage to academic transcript
     wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Academic Transcript")))
     try:
         advisor_listing = driver.find_element(By.CSS_SELECTOR, ".facultyLinkClass:nth-child(2)").text.split(" ")
@@ -653,7 +660,7 @@ while index < len(vnums):
     print("Adding " + fullname[index] + " to advisor " + advisor)
     print("(student " + str(index + 1) + " of " + str(len(vnums)) + ")")
 
-    #set path for student using their name
+    # set path for student using their name
     if is_anonymous:
         path = "advisors/" + timestamp + "/" + advisor + "/" + vnums[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, vnums[index].strip())
@@ -664,6 +671,13 @@ while index < len(vnums):
             driver.find_element(By.LINK_TEXT, "Advisee Search").click()
             fullname.pop(index)
             continue
+
+        # NEW: record successful student for consolidated workbook (anonymous -> use V-number as name)
+        advisor_dict[advisor].append({
+            "name": vnums[index].strip(),
+            "vnum": vnums[index].strip()
+        })
+
     else:
         path = "advisors/" + timestamp + "/" + advisor + "/" + fullname[index].strip() + '/' + config_file.split('/')[-1].split('.')[0]
         build_path(path, fullname[index].strip())
@@ -675,23 +689,68 @@ while index < len(vnums):
             fullname.pop(index)
             continue
 
+        # NEW: record successful student for consolidated workbook (named)
+        advisor_dict[advisor].append({
+            "name": fullname[index].strip(),
+            "vnum": vnums[index].strip()
+        })
+
     driver.close()
     driver.switch_to.window(second_window)
     driver.find_element(By.LINK_TEXT, "Advisee Search").click()
     itr += 1
     index += 1
 
-#Web driver is no longer needed
+# Web driver is no longer needed
 driver.quit()
 status.quit()
 
-#--------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
+# --------------CHANGE FUNCTION CALLS TO OTHER SCRIPTS SO IT READS ADVISOR FROM DIRECTORY------------
 
 if is_anonymous:
     preprocess.main(vnums, config_file, vnums, names, sem_flag, timestamp)
 else:
     preprocess.main(fullname, config_file, vnums, names, sem_flag, timestamp)
 print('Program complete! Check files for advisory report(s).')
+
+# NEW ---- WRITE ONCE: build consolidated student_list.xlsx under advisors/<timestamp>/ ----
+def write_consolidated_student_list(root_dir, advisor_dict):
+    """
+    Create a single workbook (student_list.xlsx) with one sheet per advisor.
+    Each sheet has rows: Name | V-Number.
+    Saves exactly once at the end of the run.
+    """
+    wb = Workbook()
+
+    advisors_in_order = list(advisor_dict.keys()) or ["No Advisor Listed"]
+    first_adv = advisors_in_order[0]
+    ws = wb.active
+    ws.title = first_adv[:31]
+    ws.append(["Name", "V-Number"])
+    for s in advisor_dict.get(first_adv, []):
+        ws.append([s.get("name", ""), s.get("vnum", "")])
+    if advisor_dict.get(first_adv):
+        longest_name = max((len(s["name"]) for s in advisor_dict[first_adv]), default=4)
+        ws.column_dimensions["A"].width = longest_name + 4
+
+    for adv in advisors_in_order[1:]:
+        ws = wb.create_sheet(title=adv[:31])  # Excel sheet name limit
+        ws.append(["Name", "V-Number"])
+        for s in advisor_dict.get(adv, []):
+            ws.append([s.get("name", ""), s.get("vnum", "")])
+        if advisor_dict.get(adv):
+            longest_name = max((len(s["name"]) for s in advisor_dict[adv]), default=4)
+            ws.column_dimensions["A"].width = longest_name + 4
+
+    out_path = os.path.join(root_dir, "student_list.xlsx")
+    # ensure root directory exists (it should by now, but just in case)
+    os.makedirs(root_dir, exist_ok=True)
+    wb.save(out_path)
+    print(f"Wrote consolidated workbook: {out_path}")
+
+root_dir = os.path.join("advisors", timestamp)
+write_consolidated_student_list(root_dir, advisor_dict)
+
 if len(error_vnums) > 0:
     print('AutoAdvisor has encountered an issue parsing some V-Numbers. Please check the error file')
     f2 = "advisors/" + timestamp + "/error_vnums.txt"
