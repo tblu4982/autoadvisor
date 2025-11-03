@@ -5,13 +5,9 @@ __pycache__/
 advisors/
 
 # Ignore vnums.txt
-<<<<<<< HEAD
 vnums.txt
 
 # Ignore webdriver
 msedgedriver.exe
 
 separator.py
-=======
-vnums.txt
->>>>>>> main
