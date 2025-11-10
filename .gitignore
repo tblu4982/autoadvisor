@@ -11,3 +11,5 @@ vnums.txt
 msedgedriver.exe
 
 separator.py
+
+*.csv
